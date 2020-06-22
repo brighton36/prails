@@ -29,7 +29,7 @@ link_directories(
 
 #######################################################################
 include(GNUInstallDirs)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Wno-missing-field-initializers")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Wno-missing-field-initializers -fPIC")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -79,8 +79,8 @@ include_directories(include thirdparty/include thirdparty/pistache/include
 include_directories(/usr/include/soci/ /usr/include/mysql/)
 add_subdirectory(lib)
 
-set(RM_LIBS functions server config_parser)
-set(RM_CONTROLLERS controller)
+# TODO: figure out a better thing, and remove the RM_ prefix
+set(RM_LIBS functions server controller config_parser)
 
 if (BUILD_TESTS)
 	add_subdirectory(
@@ -95,14 +95,25 @@ if (BUILD_TESTS)
 endif()
 
 # TODO: I think we want to be an .so
-add_executable(${CMAKE_PROJECT_NAME} "main.cpp")
+# https://stackoverflow.com/questions/17511496/how-to-create-a-shared-library-with-cmake
+#add_executable(${CMAKE_PROJECT_NAME} "main.cpp")
+add_library(${CMAKE_PROJECT_NAME} SHARED lib/libprails.cpp)
+#set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS 
+  #"-mcmodel=large")
+set_target_properties(${CMAKE_PROJECT_NAME} 
+  PROPERTIES VERSION ${PROJECT_VERSION})
+#set_target_properties(${CMAKE_PROJECT_NAME} 
+  #PROPERTIES PUBLIC_HEADER include/prails.h)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} -lpthread -lsoci_core 
-  -lsoci_sqlite3 -lsqlite3 -lsoci_mysql -lmysqlclient)
+target_link_libraries(${CMAKE_PROJECT_NAME} -lpthread -lsoci_core -lsoci_sqlite3 
+  -lsqlite3 -lsoci_mysql -lmysqlclient)
 target_link_libraries(${CMAKE_PROJECT_NAME} pistache spdlog)
-target_link_libraries(${CMAKE_PROJECT_NAME} ${RM_LIBS} )
-target_link_libraries(${CMAKE_PROJECT_NAME} 
-  "-Wl,--whole-archive" ${RM_CONTROLLERS} "-Wl,--no-whole-archive")
+target_link_libraries(${CMAKE_PROJECT_NAME} functions server config_parser )
+
+# TODO: Move this into a function in the project?
+# set(RM_CONTROLLERS controller)
+#target_link_libraries(${CMAKE_PROJECT_NAME} 
+  #"-Wl,--whole-archive" ${RM_CONTROLLERS} "-Wl,--no-whole-archive")
 
 #set( CMAKE_VERBOSE_MAKEFILE on )
 
