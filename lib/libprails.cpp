@@ -1,4 +1,4 @@
-#include "prails.h"
+#include "prails.hpp"
 #include "main.hpp"
 #include "server.hpp"
 
