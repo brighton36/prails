@@ -1,6 +1,5 @@
 #include "main.hpp"
 #include "controller.hpp"
-#include "sass/context.h"
 
 using namespace std;
 using namespace Pistache;
@@ -112,45 +111,6 @@ Controller::Response Controller::Instance::render_html(string layout, string act
 Controller::Response Controller::Instance::render_js(string action) {
   nlohmann::json tmpl;
   return render_js(action, tmpl);
-}
-
-Controller::Response Controller::Instance::render_css(string action, vector<string> include_folders) {
-  string scss_file = ensure_view_file(action+".scss");
-
-  Sass_File_Context* file_context = sass_make_file_context(scss_file.c_str());
-  if (file_context == 0)
-    throw RequestException("sass_make_file_context failed for {}", scss_file);
-
-  // Seems like these can't fail:
-  Sass_Options* options = sass_file_context_get_options(file_context);
-  sass_option_set_precision(options, 1);
-  sass_option_set_source_comments(options, true);
-
-  for (const auto &include_folder: include_folders)
-    sass_option_push_include_path(options, ensure_view_folder(include_folder).c_str());
-
-  sass_file_context_set_options(file_context, options);
-
-  Sass_Compiler* compiler = sass_make_file_compiler(file_context);
-  if (compiler == 0) {
-    sass_delete_file_context(file_context);
-    throw RequestException("sass_make_file_compiler failed for {}", scss_file);
-  }
-
-  Sass_Context* context = sass_file_context_get_context(file_context);
-
-  // NOTE: I guess if this were an open library, the error would go to the inja for
-  // rendering. But, it's not, so I don't care to write this template. We'll 
-  // just ret this json as text: 
-  Controller::Response ret = ( sass_compiler_parse(compiler) || 
-    sass_compiler_execute(compiler) || sass_context_get_error_status(context) ) ?
-    Controller::Response(500, "text/plain", string(sass_context_get_error_json(context))) :
-    Controller::Response(200, "text/css", string(sass_context_get_output_string(context)));
-
-  sass_delete_compiler(compiler);
-  sass_delete_file_context(file_context);
-
-  return ret;
 }
 
 Controller::CorsOkResponse::CorsOkResponse(const vector<string> &whichMethods) : 

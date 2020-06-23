@@ -203,7 +203,6 @@ namespace Controller {
 
       Controller::Response render_html(std::string, std::string);
       Controller::Response render_html(std::string, std::string, nlohmann::json);
-      Controller::Response render_css(std::string, std::vector<std::string>);
       Controller::Response render_js(std::string, nlohmann::json);
       Controller::Response render_js(std::string);
 

@@ -26,5 +26,5 @@ add_library(config_parser config_parser.cpp)
 #target_link_libraries(station_alternatives_controller -lsoci_core -lsoci_sqlite3 -lsqlite3 
   #-lsoci_mysql -lmysqlclient)
 
-target_link_libraries(controller functions -lsass)
+target_link_libraries(controller functions)
 target_link_libraries(config_parser functions -lyaml-cpp)
