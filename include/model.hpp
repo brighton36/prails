@@ -66,11 +66,11 @@ namespace Model {
   struct Validator {
     template <class T>
     Validator(T t) : 
-			isValid([t = std::move(t)](Model::Record &r, const Model::Definition &d) { 
-				return t.isValid(r,d); }) {}
+      isValid([t = std::move(t)](Model::Record &r, const Model::Definition &d) { 
+        return t.isValid(r,d); }) {}
 
     std::function<RecordError(Model::Record &r, const Model::Definition &)> isValid;
-	};
+  };
   typedef std::vector<Validator> Validations;
 
 
@@ -91,20 +91,20 @@ namespace Model {
     static SpdoutStringbuf debug_buff;
     static std::ostream spd_debug_out(&debug_buff);
 
-		if (default_pool == nullptr) {
+    if (default_pool == nullptr) {
       if (threads == 0 || dsn.empty())
         throw ModelException(
         "Unable to retrieve a database session. "
         "The database connection has not yet been initialized.");
 
-			default_pool = std::make_shared<soci::connection_pool>(threads);
+      default_pool = std::make_shared<soci::connection_pool>(threads);
 
-			for (unsigned int i = 0; i != threads; ++i) {
-				soci::session & sql = default_pool->at(i);
-				sql.set_log_stream(&spd_debug_out); // TODO: Not thread-safe, I think
-				sql.open(dsn);
-			}
-		} else if ((threads != 0) || (!dsn.empty()))
+      for (unsigned int i = 0; i != threads; ++i) {
+        soci::session & sql = default_pool->at(i);
+        sql.set_log_stream(&spd_debug_out); // TODO: Not thread-safe, I think
+        sql.open(dsn);
+      }
+    } else if ((threads != 0) || (!dsn.empty()))
         throw ModelException(
         "Unable to re-initialize database. The Database pool is already established");
 
@@ -114,91 +114,91 @@ namespace Model {
   std::tm inline NowUTC() {
     time_t t_time = time(NULL);
     return *gmtime(&t_time);
-	}
+  }
 
   std::string inline JsonTime(std::tm tm_time) {
     char buffer [80];
     long int t = timegm(&tm_time);
     strftime(buffer,80,"%Y-%m-%dT%H:%M:%S.0%z",std::gmtime(&t));
     return std::string(buffer);
-	}
+  }
 
   // NOTE: See the GetSession() notes above.
-	void inline Initialize(ConfigParser &config) {
+  void inline Initialize(ConfigParser &config) {
     GetSession(config.threads(), config.dsn());
-	}
+  }
 
-	class Definition {
-		public:
-			explicit Definition(const std::string &pkey_column, 
-				const std::string &table_name, const ColumnTypes &column_types, 
+  class Definition {
+    public:
+      explicit Definition(const std::string &pkey_column, 
+        const std::string &table_name, const ColumnTypes &column_types, 
         const Validations &validations) : 
-				pkey_column(pkey_column), table_name(table_name), 
+        pkey_column(pkey_column), table_name(table_name), 
         column_types(column_types), validations(validations) {
 
         // Check that pkey exists, and is long:
-				if ((column_types.find(pkey_column) == column_types.end()) || 
-					(column_types.at(pkey_column) != COL_TYPE(long)))
-					throw ModelException(
-					"Invalid model definition. References pkey \"{}\", which cant be "
-					"found in ColumnTypes, or which isn't of type long.", pkey_column);
+        if ((column_types.find(pkey_column) == column_types.end()) || 
+          (column_types.at(pkey_column) != COL_TYPE(long)))
+          throw ModelException(
+          "Invalid model definition. References pkey \"{}\", which cant be "
+          "found in ColumnTypes, or which isn't of type long.", pkey_column);
       };
 
-			std::string pkey_column; // NOTE: This column must be a long as of this time.
-			std::string table_name;
-			ColumnTypes column_types;
+      std::string pkey_column; // NOTE: This column must be a long as of this time.
+      std::string table_name;
+      ColumnTypes column_types;
       Validations validations;
-	};
+  };
 
-	template <class T>
-	class Instance {
-		protected:
-			explicit Instance(const Model::Definition* const);
-			explicit Instance(Model::Record, bool, const Model::Definition* const);
+  template <class T>
+  class Instance {
+    protected:
+      explicit Instance(const Model::Definition* const);
+      explicit Instance(Model::Record, bool, const Model::Definition* const);
 
       static long GetAffectedRows(soci::statement &, soci::session &);
 
-			bool isDirty_;
+      bool isDirty_;
       Model::RecordErrors errors_;
       std::optional<bool> isValid_;
-			const Model::Definition* definition;
-			std::shared_ptr<soci::connection_pool> pool;
-			Model::Record record;
+      const Model::Definition* definition;
+      std::shared_ptr<soci::connection_pool> pool;
+      Model::Record record;
 
-		public: 
-			bool isValid();
-			bool isDirty();
-			void save();
-			void remove();
-			void resetStateCache();
+    public: 
+      bool isValid();
+      bool isDirty();
+      void save();
+      void remove();
+      void resetStateCache();
       nlohmann::json toJson();
-			Model::RecordErrors errors();
-			std::optional<Model::RecordValue> recordGet(const std::string&);
-			void recordSet(const std::string&, const std::optional<Model::RecordValue>&);
-			std::vector<std::string> recordKeys();
-			std::vector<std::string> modelKeys();
+      Model::RecordErrors errors();
+      std::optional<Model::RecordValue> recordGet(const std::string&);
+      void recordSet(const std::string&, const std::optional<Model::RecordValue>&);
+      std::vector<std::string> recordKeys();
+      std::vector<std::string> modelKeys();
 
-			static void Remove(long);
-			static void Migrate();
-			static Model::Record RowToRecord(soci::row &);
-			static void Remove(std::string, long);
-			static std::optional<T> Find(long);
-			static std::optional<T> Find(std::string, Model::Record);
-			template <typename... Args> 
-			static std::vector<T> Select(std::string, Args...);
-			template <typename... Args> 
-			static unsigned long Count(std::string, Args...);
-		  static void CreateTable(std::vector<std::pair<std::string,std::string>>);
-		  static void DropTable();
-	};
+      static void Remove(long);
+      static void Migrate();
+      static Model::Record RowToRecord(soci::row &);
+      static void Remove(std::string, long);
+      static std::optional<T> Find(long);
+      static std::optional<T> Find(std::string, Model::Record);
+      template <typename... Args> 
+      static std::vector<T> Select(std::string, Args...);
+      template <typename... Args> 
+      static unsigned long Count(std::string, Args...);
+      static void CreateTable(std::vector<std::pair<std::string,std::string>>);
+      static void DropTable();
+  };
 
   class ColumnValidator {
     public:
       explicit ColumnValidator(const std::string &column) : column(column) {};
 
       RecordError isValid(Model::Record &, const Model::Definition &) const { 
-				return std::nullopt;
-			}
+        return std::nullopt;
+      }
 
     protected:
       std::string column;
@@ -365,34 +365,34 @@ namespace Model {
 
 namespace soci {
   
-	template<>
-	struct type_conversion<Model::Record *> {
-		typedef values base_type;
-		static void from_base(values const &, indicator, Model::Record *) {}
-		static void to_base(Model::Record * record,values & v, indicator & ind) {
+  template<>
+  struct type_conversion<Model::Record *> {
+    typedef values base_type;
+    static void from_base(values const &, indicator, Model::Record *) {}
+    static void to_base(Model::Record * record,values & v, indicator & ind) {
       for (const auto &p: *record) {
         std::string key = p.first;
         std::optional<Model::RecordValue> record_val = p.second;
 
         if (record_val.has_value())
-					std::visit([&key, &v](auto&& typeA) {
-						using U = std::decay_t<decltype(typeA)>;
-						v.set<U>(key, typeA, i_ok);
-					}, record_val.value());
+          std::visit([&key, &v](auto&& typeA) {
+            using U = std::decay_t<decltype(typeA)>;
+            v.set<U>(key, typeA, i_ok);
+          }, record_val.value());
         else
           v.set(key, 0, i_null);
       }
 
-			ind = i_ok;
-		}
+      ind = i_ok;
+    }
   };
 
-	template<>
-	struct type_conversion<std::optional<Model::RecordValue> *> {
-		typedef values base_type;
-		static void from_base(values const &, indicator, 
+  template<>
+  struct type_conversion<std::optional<Model::RecordValue> *> {
+    typedef values base_type;
+    static void from_base(values const &, indicator, 
       std::optional<Model::RecordValue> *) {}
-		static void to_base(std::optional<Model::RecordValue> * record_val, 
+    static void to_base(std::optional<Model::RecordValue> * record_val, 
       values & v, indicator & ind) {
       if (record_val->has_value())
         std::visit([&v](auto&& typeA) {
@@ -402,31 +402,31 @@ namespace soci {
       else
         v.set(0, i_null);
 
-			ind = i_ok;
-		}
+      ind = i_ok;
+    }
   };
 
-	template<typename T>
-	struct type_conversion<Model::Instance<T>*> {
-		typedef values base_type;
+  template<typename T>
+  struct type_conversion<Model::Instance<T>*> {
+    typedef values base_type;
 
-		static void from_base(values const &, indicator, Model::Instance<T> *) {}
-		static void to_base(Model::Instance<T> * m, values & v, indicator & ind) {
+    static void from_base(values const &, indicator, Model::Instance<T> *) {}
+    static void to_base(Model::Instance<T> * m, values & v, indicator & ind) {
       for (const std::string & key: m->modelKeys() ) {
         auto record_val = m->recordGet(key);
 
         if (record_val)
-					std::visit([&key, &record_val, &v](auto&& typeA) {
-						using U = std::decay_t<decltype(typeA)>;
-						v.set(key, std::get<U>(record_val.value()), i_ok);
-					}, (*record_val));
+          std::visit([&key, &record_val, &v](auto&& typeA) {
+            using U = std::decay_t<decltype(typeA)>;
+            v.set(key, std::get<U>(record_val.value()), i_ok);
+          }, (*record_val));
         else
           v.set(key, 0, i_null);
       }
 
-			ind = i_ok;
-		}
-	};
+      ind = i_ok;
+    }
+  };
 }
 
 template <class T>
@@ -439,7 +439,7 @@ Model::Instance<T>::Instance(Model::Record record_, bool isDirty,
   definition(definition) {
 
   // This mostly enforces type checks:
-	for (const auto &col_val : record_) recordSet(col_val.first, col_val.second);
+  for (const auto &col_val : record_) recordSet(col_val.first, col_val.second);
   isDirty_ = isDirty;
 }
 
@@ -447,8 +447,8 @@ Model::Instance<T>::Instance(Model::Record record_, bool isDirty,
 template <class T>
 std::vector<std::string> Model::Instance<T>::recordKeys() {
   std::vector<std::string> ret;  
-	std::for_each(record.begin(), record.end(), [&ret](auto &col_val) {
-		ret.push_back(col_val.first); });
+  std::for_each(record.begin(), record.end(), [&ret](auto &col_val) {
+    ret.push_back(col_val.first); });
 
   return ret;
 }
@@ -460,7 +460,7 @@ nlohmann::json Model::Instance<T>::toJson() {
     if (auto value = recordGet(key); value.has_value())
       std::visit([&key, &json](auto&& typeA) {
         using U = std::decay_t<decltype(typeA)>;
-				if constexpr(std::is_same_v<U, std::tm>)
+        if constexpr(std::is_same_v<U, std::tm>)
           json[key] = Model::JsonTime(typeA);
         else
           json[key] = typeA;
@@ -475,7 +475,7 @@ nlohmann::json Model::Instance<T>::toJson() {
 template <class T>
 std::vector<std::string> Model::Instance<T>::modelKeys() {
   std::vector<std::string> ret;  
-	for (const auto &col_val : record) 
+  for (const auto &col_val : record) 
     if (definition->column_types.count(col_val.first) > 0) 
       ret.push_back(col_val.first);
 
@@ -508,11 +508,11 @@ Model::RecordErrors Model::Instance<T>::errors() {
   // Rebuild this cache:
   errors_.clear();
 
-	for (auto &validator : definition->validations) {
+  for (auto &validator : definition->validations) {
     Model::RecordError error = validator.isValid(record, *definition);
     if (error) { 
       std::optional<std::string> column = (*error).first;
-			std::string message = (*error).second;
+      std::string message = (*error).second;
 
       if (errors_.find(column) == errors_.end())
         errors_[column] = std::vector<std::string>();
@@ -535,7 +535,7 @@ void Model::Instance<T>::save() {
 
   if (!isValid()) throw ModelException("Invalid Model can't be saved.");
 
-	soci::session sql = Model::GetSession();
+  soci::session sql = Model::GetSession();
 
   std::vector<std::string> columns = modelKeys();
 
@@ -546,17 +546,17 @@ void Model::Instance<T>::save() {
 
     soci::statement update = (sql.prepare << fmt::format("update {} set {} where id = :id", 
       definition->table_name, join(set_pairs, ", ") ), soci::use(this));
-		update.execute(true);
+    update.execute(true);
 
     // See the below note on last_insert_id. Seems like affected_rows is similarly
     // off.
     if (long affected_rows = GetAffectedRows(update, sql); affected_rows != 1)
-			throw ModelException("Unable to perform update, {} affected rows.", affected_rows);
+      throw ModelException("Unable to perform update, {} affected rows.", affected_rows);
 
   } else {
     std::vector<std::string> values;
-		std::for_each(columns.begin(), columns.end(), [&values](auto &key) {
-			values.push_back(":"+key); });
+    std::for_each(columns.begin(), columns.end(), [&values](auto &key) {
+      values.push_back(":"+key); });
 
     sql << fmt::format("insert into {} ({}) values({})", definition->table_name, 
       join(columns, ", "), join(values, ", ")), soci::use(this);
@@ -566,28 +566,28 @@ void Model::Instance<T>::save() {
     // sqlite3_last_insert_row_id. So, here, we just grab the connection manually
     // and run the typecast. This isn't that portable. so, perhaps we'll fix that
     // at some point.
-		long last_id = 0;
+    long last_id = 0;
 
-		if (sql.get_backend_name() == "sqlite3") { 
-			auto sql3backend = static_cast<soci::sqlite3_session_backend *>(sql.get_backend());
+    if (sql.get_backend_name() == "sqlite3") { 
+      auto sql3backend = static_cast<soci::sqlite3_session_backend *>(sql.get_backend());
 
-			long long sqlite_last_id = sqlite3_last_insert_rowid(sql3backend->conn_);
+      long long sqlite_last_id = sqlite3_last_insert_rowid(sql3backend->conn_);
 
-			if(!sqlite_last_id)
-				throw ModelException("Unable to perform insert, last_insert_id returned zero.");
+      if(!sqlite_last_id)
+        throw ModelException("Unable to perform insert, last_insert_id returned zero.");
 
-			last_id = static_cast<long>(sqlite_last_id);
-		} else if (sql.get_backend_name() == "mysql") { 
-			auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
+      last_id = static_cast<long>(sqlite_last_id);
+    } else if (sql.get_backend_name() == "mysql") { 
+      auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
 
-			uint64_t mysql_last_id = mysql_insert_id(mysqlbackend->conn_);
+      uint64_t mysql_last_id = mysql_insert_id(mysqlbackend->conn_);
 
-			if(!mysql_last_id)
-				throw ModelException("Unable to perform insert, last_insert_id returned zero.");
+      if(!mysql_last_id)
+        throw ModelException("Unable to perform insert, last_insert_id returned zero.");
 
-			last_id = static_cast<long>(mysql_last_id);
-		} else if (!sql.get_last_insert_id(definition->table_name, last_id))
-			throw ModelException("Unable to perform insert, last_insert_id returned zero.");
+      last_id = static_cast<long>(mysql_last_id);
+    } else if (!sql.get_last_insert_id(definition->table_name, last_id))
+      throw ModelException("Unable to perform insert, last_insert_id returned zero.");
 
     recordSet(definition->pkey_column, last_id);
   }
@@ -608,7 +608,7 @@ template <class T>
 void Model::Instance<T>::recordSet(const std::string &col, const std::optional<Model::RecordValue> &val) {
   if ((definition->column_types.count(col) > 0) && (val != std::nullopt) && 
     ((*val).index() != definition->column_types.at(col))) {
-			Model::RecordValue store_val;
+      Model::RecordValue store_val;
 
       switch (definition->column_types.at(col)) {
         case COL_TYPE(std::string): store_val = std::string(); break;
@@ -616,29 +616,29 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
         case COL_TYPE(int): store_val = (int) 0; break;
         case COL_TYPE(unsigned long): store_val = (unsigned long) 0; break;
         case COL_TYPE(long): store_val = (long) 0; break;
-				case COL_TYPE(std::tm): store_val = std::tm(); break;
+        case COL_TYPE(std::tm): store_val = std::tm(); break;
         default:
          throw ModelException("Unable to determine column type of column {}", col);
          break;
       }
 
-			std::visit([&store_val, &col](auto&& fromType, auto&& toType) {
-				using V = std::decay_t<decltype(fromType)>;
-				using U = std::decay_t<decltype(toType)>;
+      std::visit([&store_val, &col](auto&& fromType, auto&& toType) {
+        using V = std::decay_t<decltype(fromType)>;
+        using U = std::decay_t<decltype(toType)>;
 
-				if constexpr(std::is_same_v<V, std::tm> || std::is_same_v<U, std::tm>){
-    			throw ModelException("Time conversions are unsupported on {} column.", col);
+        if constexpr(std::is_same_v<V, std::tm> || std::is_same_v<U, std::tm>){
+          throw ModelException("Time conversions are unsupported on {} column.", col);
         } else if constexpr (!std::is_same_v<V, std::string> && !std::is_same_v<U, std::string>)
-					store_val = U(fromType);
-				else if constexpr (!std::is_same_v<U, std::string> && !std::is_same_v<V, double>)
+          store_val = U(fromType);
+        else if constexpr (!std::is_same_v<U, std::string> && !std::is_same_v<V, double>)
           // Seems like sqlite returns Scientific notation in a string:
-					store_val = atof(fromType.c_str());
+          store_val = atof(fromType.c_str());
         else
-    			throw ModelException("Invalid type passed to set operation on {} column. "
-						"Probably a numeric to non-numeric type mismatch occurred", col);
-			}, (*val), store_val);
+          throw ModelException("Invalid type passed to set operation on {} column. "
+            "Probably a numeric to non-numeric type mismatch occurred", col);
+      }, (*val), store_val);
 
-			record[col] = store_val;
+      record[col] = store_val;
   } else 
     record[col] = val;
 
@@ -648,128 +648,128 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
 
 template <class T>
 Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
-	Model::Record ret;
+  Model::Record ret;
 
-	for(size_t i = 0; i != r.size(); ++i) {
-		const soci::column_properties & props = r.get_properties(i);
-		const soci::indicator & ind = r.get_indicator(i);
+  for(size_t i = 0; i != r.size(); ++i) {
+    const soci::column_properties & props = r.get_properties(i);
+    const soci::indicator & ind = r.get_indicator(i);
 
-		std::string key = props.get_name();
+    std::string key = props.get_name();
 
-		if (ind == soci::i_null) 
-			ret[key] = std::nullopt;
-		else {
-			Model::RecordValue val;
+    if (ind == soci::i_null) 
+      ret[key] = std::nullopt;
+    else {
+      Model::RecordValue val;
 
-			switch(props.get_data_type()) {
-				case soci::dt_string: val = r.get<std::string>(i); break;
-				case soci::dt_double: val = r.get<double>(i); break;
-				case soci::dt_integer: val = r.get<int>(i); break;
-				case soci::dt_unsigned_long_long: val = r.get<unsigned long>(i); break;
-				case soci::dt_long_long: val = r.get<long>(i); break;
-				case soci::dt_date: val = r.get<tm>(i); break;
-			}
-			ret[key] = val;
-		}
-	}
+      switch(props.get_data_type()) {
+        case soci::dt_string: val = r.get<std::string>(i); break;
+        case soci::dt_double: val = r.get<double>(i); break;
+        case soci::dt_integer: val = r.get<int>(i); break;
+        case soci::dt_unsigned_long_long: val = r.get<unsigned long>(i); break;
+        case soci::dt_long_long: val = r.get<long>(i); break;
+        case soci::dt_date: val = r.get<tm>(i); break;
+      }
+      ret[key] = val;
+    }
+  }
 
-	return ret;
+  return ret;
 }
 
 template <class T>
 void Model::Instance<T>::Remove(std::string table_name, long id) {
 
-	soci::session sql = Model::GetSession();
-	soci::statement delete_stmt = (sql.prepare << 
-		fmt::format("delete from {} where id = :id", table_name), 
-		soci::use(id, "id"));
-	delete_stmt.execute(true);
+  soci::session sql = Model::GetSession();
+  soci::statement delete_stmt = (sql.prepare << 
+    fmt::format("delete from {} where id = :id", table_name), 
+    soci::use(id, "id"));
+  delete_stmt.execute(true);
 
-	if (long affected_rows = GetAffectedRows(delete_stmt, sql); affected_rows != 1)
-		throw ModelException("Error deleting {} record with id {}. {} rows affected.", 
-			table_name, id, affected_rows);
+  if (long affected_rows = GetAffectedRows(delete_stmt, sql); affected_rows != 1)
+    throw ModelException("Error deleting {} record with id {}. {} rows affected.", 
+      table_name, id, affected_rows);
 }
 
 template <class T>
 std::optional<T> Model::Instance<T>::Find(long id){
-	return Model::Instance<T>::Find("id = :id", Model::Record({{"id", id}}));
+  return Model::Instance<T>::Find("id = :id", Model::Record({{"id", id}}));
 }
 
 template <class T>
 std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where_values){
-	soci::session sql = Model::GetSession();
-	soci::row r;
+  soci::session sql = Model::GetSession();
+  soci::row r;
 
-	sql << fmt::format("select * from {} where {} limit 1", 
-		T::Definition.table_name, where), soci::use(&where_values), soci::into(r);
+  sql << fmt::format("select * from {} where {} limit 1", 
+    T::Definition.table_name, where), soci::use(&where_values), soci::into(r);
 
-	if (!sql.got_data()) return std::nullopt;
+  if (!sql.got_data()) return std::nullopt;
 
-	return std::make_optional(T(RowToRecord(r), false));
+  return std::make_optional(T(RowToRecord(r), false));
 }
 
 template <class T>
 void Model::Instance<T>::Remove(long id) {
-	Remove(T::Definition.table_name, id);
+  Remove(T::Definition.table_name, id);
 }
 
 template <class T>
 template <typename... Args> 
 std::vector<T> Model::Instance<T>::Select(std::string query, Args... args) {
-	soci::session sql = Model::GetSession();
-	soci::statement st(sql);
-	soci::row rows;
-	std::vector<T> ret;
+  soci::session sql = Model::GetSession();
+  soci::statement st(sql);
+  soci::row rows;
+  std::vector<T> ret;
 
-	((void) st.exchange(soci::use<Args>(args)), ...);
+  ((void) st.exchange(soci::use<Args>(args)), ...);
 
-	st.alloc();
-	st.prepare(query);
-	st.define_and_bind();
-	st.exchange_for_rowset(soci::into(rows));
-	st.execute(false);
+  st.alloc();
+  st.prepare(query);
+  st.define_and_bind();
+  st.exchange_for_rowset(soci::into(rows));
+  st.execute(false);
 
-	soci::rowset_iterator<soci::row> it(st, rows);
-	soci::rowset_iterator<soci::row> end;
-	for (; it != end; ++it) ret.push_back(T(RowToRecord(*it), false));
+  soci::rowset_iterator<soci::row> it(st, rows);
+  soci::rowset_iterator<soci::row> end;
+  for (; it != end; ++it) ret.push_back(T(RowToRecord(*it), false));
 
-	return ret;
+  return ret;
 }
 
 template <class T>
 template <typename... Args> 
 unsigned long Model::Instance<T>::Count(std::string query, Args... args){
-	soci::session sql = Model::GetSession();
-	long count;
+  soci::session sql = Model::GetSession();
+  long count;
 
-	soci::statement st(sql);
+  soci::statement st(sql);
 
-	((void) st.exchange(soci::use<Args>(args)), ...);
+  ((void) st.exchange(soci::use<Args>(args)), ...);
 
-	st.exchange(soci::into(count));
-	st.alloc();
-	st.prepare(query);
-	st.define_and_bind();
-	bool got_data = st.execute(true);
+  st.exchange(soci::into(count));
+  st.alloc();
+  st.prepare(query);
+  st.define_and_bind();
+  bool got_data = st.execute(true);
 
-	if (!got_data) throw ModelException("No data returned for count query");
+  if (!got_data) throw ModelException("No data returned for count query");
 
-	return count;
+  return count;
 }
 
 template <class T>
 long Model::Instance<T>::GetAffectedRows(soci::statement &statement, soci::session &sql) {
-	// NOTE: This may belong in a quasi-driver kind of thing. It's a hack to get 
+  // NOTE: This may belong in a quasi-driver kind of thing. It's a hack to get 
   //       this long, which varies by backend I guess...
 
-	if (sql.get_backend_name() == "mysql") {
-		auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
+  if (sql.get_backend_name() == "mysql") {
+    auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
 
-		uint64_t mysql_rows = mysql_affected_rows(mysqlbackend->conn_);
+    uint64_t mysql_rows = mysql_affected_rows(mysqlbackend->conn_);
 
-		return static_cast<long>(mysql_rows);
-	} else 
-		return statement.get_affected_rows();
+    return static_cast<long>(mysql_rows);
+  } else 
+    return statement.get_affected_rows();
 
   return 0;
 }

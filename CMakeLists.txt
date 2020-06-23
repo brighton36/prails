@@ -98,6 +98,8 @@ add_library(${CMAKE_PROJECT_NAME} SHARED lib/libprails.cpp)
   #"-mcmodel=large")
 set_target_properties(${CMAKE_PROJECT_NAME} 
   PROPERTIES VERSION ${PROJECT_VERSION})
+
+# TODO: can we produce a single header with all the needed includes?
 #set_target_properties(${CMAKE_PROJECT_NAME} 
   #PROPERTIES PUBLIC_HEADER include/prails.h)
 
