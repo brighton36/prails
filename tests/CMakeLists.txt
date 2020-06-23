@@ -3,8 +3,9 @@ function(declare_test test_name)
     set(TEST_SOURCE ${test_name}.cpp)
 
     add_executable(${TEST_EXECUTABLE} ${TEST_SOURCE})
-    target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main ${RM_LIBS}
-      -lpthread -lsoci_core -lsoci_sqlite3 spdlog -lsqlite3 -lsoci_mysql -lmysqlclient )
+    target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main functions 
+      config_parser -lpthread -lsoci_core -lsoci_sqlite3 spdlog -lsqlite3 
+      -lsoci_mysql -lmysqlclient )
     add_test(${test_name} ${TEST_EXECUTABLE})
 endfunction()
 

@@ -78,9 +78,6 @@ include_directories(include thirdparty/include thirdparty/pistache/include
 include_directories(/usr/include/soci/ /usr/include/mysql/)
 add_subdirectory(lib)
 
-# TODO: figure out a better thing, and remove the RM_ prefix
-set(RM_LIBS functions server controller config_parser)
-
 if (BUILD_TESTS)
 	add_subdirectory(
 		${CMAKE_CURRENT_BINARY_DIR}/external/googletest-prefix/src/googletest
@@ -104,15 +101,10 @@ set_target_properties(${CMAKE_PROJECT_NAME}
 #set_target_properties(${CMAKE_PROJECT_NAME} 
   #PROPERTIES PUBLIC_HEADER include/prails.h)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} -lpthread -lsoci_core -lsoci_sqlite3 
+target_link_libraries(${CMAKE_PROJECT_NAME} -lpthread -lsoci_core -lsoci_sqlite3
   -lsqlite3 -lsoci_mysql -lmysqlclient)
 target_link_libraries(${CMAKE_PROJECT_NAME} pistache spdlog)
-target_link_libraries(${CMAKE_PROJECT_NAME} functions server config_parser )
-
-# TODO: Move this into a function in the project?
-# set(RM_CONTROLLERS controller)
-#target_link_libraries(${CMAKE_PROJECT_NAME} 
-  #"-Wl,--whole-archive" ${RM_CONTROLLERS} "-Wl,--no-whole-archive")
+target_link_libraries(${CMAKE_PROJECT_NAME} functions server controller config_parser )
 
 #set( CMAKE_VERBOSE_MAKEFILE on )
 
