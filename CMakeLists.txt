@@ -106,7 +106,9 @@ set_target_properties(${CMAKE_PROJECT_NAME}
 target_link_libraries(${CMAKE_PROJECT_NAME} -lpthread -lsoci_core -lsoci_sqlite3
   -lsqlite3 -lsoci_mysql -lmysqlclient)
 target_link_libraries(${CMAKE_PROJECT_NAME} pistache spdlog)
-target_link_libraries(${CMAKE_PROJECT_NAME} functions server controller config_parser )
+target_link_libraries(${CMAKE_PROJECT_NAME} functions server config_parser )
+target_link_libraries(${CMAKE_PROJECT_NAME} 
+  "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
 
 #set( CMAKE_VERBOSE_MAKEFILE on )
 
