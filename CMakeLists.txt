@@ -92,22 +92,22 @@ endif()
 
 # TODO: I think we want to be an .so
 # https://stackoverflow.com/questions/17511496/how-to-create-a-shared-library-with-cmake
-#add_executable(${CMAKE_PROJECT_NAME} "main.cpp")
-add_library(${CMAKE_PROJECT_NAME} SHARED lib/libprails.cpp)
-#set_property(TARGET ${CMAKE_PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS 
+#add_executable(prails "main.cpp")
+add_library(prails SHARED lib/libprails.cpp)
+#set_property(TARGET prails APPEND_STRING PROPERTY LINK_FLAGS 
   #"-mcmodel=large")
-set_target_properties(${CMAKE_PROJECT_NAME} 
+set_target_properties(prails 
   PROPERTIES VERSION ${PROJECT_VERSION})
 
 # TODO: can we produce a single header with all the needed includes?
-#set_target_properties(${CMAKE_PROJECT_NAME} 
+#set_target_properties(prails 
   #PROPERTIES PUBLIC_HEADER include/prails.h)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} -lpthread -lsoci_core -lsoci_sqlite3
+target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3
   -lsqlite3 -lsoci_mysql -lmysqlclient)
-target_link_libraries(${CMAKE_PROJECT_NAME} pistache spdlog)
-target_link_libraries(${CMAKE_PROJECT_NAME} functions server config_parser )
-target_link_libraries(${CMAKE_PROJECT_NAME} 
+target_link_libraries(prails pistache spdlog)
+target_link_libraries(prails functions server config_parser )
+target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
 
 #set( CMAKE_VERBOSE_MAKEFILE on )

@@ -65,7 +65,6 @@ void Controller::RestInstance<U,T>::Routes(
   }
 }
 
-
 template <class U, class T>
 Controller::Response 
 Controller::RestInstance<U,T>::options(const Pistache::Rest::Request&) {
@@ -77,6 +76,8 @@ Controller::Response
 Controller::RestInstance<U,T>::index(const Pistache::Rest::Request&) {
   auto index = nlohmann::json::array();
 
+  // TODO: Introduce a RestController::modelSelect(). pull the json requirement 
+  // out of the model class, into this
   for (auto &model: T::Select(fmt::format("select * from {}", T::Definition.table_name)))
     index.push_back(model.toJson());
 
