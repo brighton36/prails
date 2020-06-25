@@ -57,7 +57,7 @@ if (BUILD_TESTS)
     message("-- Cppcheck found " ${CMAKE_CXX_CPPCHECK})
     list(
       APPEND CMAKE_CXX_CPPCHECK
-      "--enable=all"
+      "--enable=warning,style,performance,portability,unusedFunction"
       "-DCPPCHECK"
       "-I${PROJECT_SOURCE_DIR}/include"
       "--suppress=unmatchedSuppression"
