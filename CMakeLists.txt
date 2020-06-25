@@ -1,31 +1,45 @@
 cmake_minimum_required (VERSION 3.1.3)
 project (prails VERSION 0.1)
 
-#######################################################################
-# Download external git dependencies before compile-time:
-# From: https://github.com/google/googletest/tree/master/googletest
-configure_file(CMakeLists.txt.in external/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external )
-if(result)
-  message(FATAL_ERROR "CMake step for external dependency failed: ${result}")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/external )
-if(result)
-  message(FATAL_ERROR "Build step for external dependency failed: ${result}")
+##############################################################################
+# Dependencies:
+include(${CMAKE_ROOT}/Modules/FetchContent.cmake)
+
+# Pistache:
+FetchContent_Declare( pistache
+	GIT_REPOSITORY "https://github.com/oktal/pistache.git" )
+FetchContent_MakeAvailable(pistache)
+FetchContent_GetProperties(pistache)
+if(NOT pistache_POPULATED)
+  FetchContent_Populate(pistache)
+  add_subdirectory(${pistache_SOURCE_DIR} ${pistache_BINARY_DIR})
 endif()
 
-# Add the external dependency paths to our build
+# Spdlog:
+FetchContent_Declare( spdlog GIT_TAG v1.6.1
+	GIT_REPOSITORY "https://github.com/gabime/spdlog.git" )
+set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "Build shared library")
+
+FetchContent_MakeAvailable(spdlog)
+FetchContent_GetProperties(spdlog)
+if(NOT spdlog_POPULATED)
+  FetchContent_Populate(spdlog)
+  add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
+endif()
+
+# Google Test:
+FetchContent_Declare( googletest GIT_TAG master
+  GIT_REPOSITORY "https://github.com/google/googletest.git" )
+FetchContent_MakeAvailable(googletest)
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+  FetchContent_Populate(googletest)
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+endif()
+
 include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/external/pistache-prefix/src/pistache/include
-	${CMAKE_CURRENT_BINARY_DIR}/external/spdlog-prefix/src/spdlog/include)
-
-link_directories(
-	${CMAKE_CURRENT_BINARY_DIR}/external/pistache-prefix/src/pistache-build/src
-	${CMAKE_CURRENT_BINARY_DIR}/external/spdlog-prefix/src/spdlog-build)
+	${prails_BINARY_DIR}/_deps/pistache-src/include
+	${prails_BINARY_DIR}/_deps/spdlog-src/include)
 
 #######################################################################
 include(GNUInstallDirs)
@@ -62,7 +76,7 @@ if (BUILD_TESTS)
       "-I${PROJECT_SOURCE_DIR}/include"
       "--suppress=unmatchedSuppression"
       "--suppress=*:*thirdparty/*"
-      "--suppress=*:*external/*"
+      "--suppress=*:*_deps/*"
     )
   else()
     message("-- Cppcheck not found")
@@ -75,35 +89,24 @@ if (BUILD_TESTS)
       --force-new-ctest-process --test-action coverage)
 endif()
 
-include_directories(include thirdparty/include thirdparty/pistache/include 
-  thirdparty/spdlog/include)
+include_directories(include thirdparty/include)
 include_directories(/usr/include/soci/ /usr/include/mysql/)
 add_subdirectory(lib)
 
 if (BUILD_TESTS)
-	add_subdirectory(
-		${CMAKE_CURRENT_BINARY_DIR}/external/googletest-prefix/src/googletest
-		${CMAKE_CURRENT_BINARY_DIR}/external/googletest-prefix/build
-		EXCLUDE_FROM_ALL)
-	include_directories(
-		${CMAKE_CURRENT_BINARY_DIR}/external/pistache-prefix/src/pistache/tests)
+	#add_subdirectory(
+		#${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-src/googletest
+		#${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-build/googletest
+		#EXCLUDE_FROM_ALL)
+	#include_directories(
+		#${CMAKE_CURRENT_BINARY_DIR}/external/pistache-prefix/src/pistache/tests)
 
   enable_testing()
   add_subdirectory(tests)
 endif()
 
-# TODO: I think we want to be an .so
-# https://stackoverflow.com/questions/17511496/how-to-create-a-shared-library-with-cmake
-#add_executable(prails "main.cpp")
 add_library(prails SHARED lib/libprails.cpp)
-#set_property(TARGET prails APPEND_STRING PROPERTY LINK_FLAGS 
-  #"-mcmodel=large")
-set_target_properties(prails 
-  PROPERTIES VERSION ${PROJECT_VERSION})
-
-# TODO: can we produce a single header with all the needed includes?
-#set_target_properties(prails 
-  #PROPERTIES PUBLIC_HEADER include/prails.h)
+set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
 target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3
   -lsqlite3 -lsoci_mysql -lmysqlclient)
@@ -111,6 +114,3 @@ target_link_libraries(prails pistache spdlog)
 target_link_libraries(prails functions server config_parser )
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
-
-#set( CMAKE_VERBOSE_MAKEFILE on )
-
