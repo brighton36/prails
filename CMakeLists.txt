@@ -38,8 +38,8 @@ if(NOT googletest_POPULATED)
 endif()
 
 include_directories(
-  ${CMAKE_CURRENT_BINARY_DIR}/_deps/pistache-src/include
-  ${CMAKE_CURRENT_BINARY_DIR}/_deps/spdlog-src/include)
+  ${CMAKE_BINARY_DIR}/_deps/pistache-src/include
+  ${CMAKE_BINARY_DIR}/_deps/spdlog-src/include)
 
 #######################################################################
 include(GNUInstallDirs)
@@ -94,6 +94,7 @@ include_directories(/usr/include/soci/ /usr/include/mysql/)
 add_subdirectory(lib)
 
 if (BUILD_TESTS)
+  # TODO: remove the current... potentiolally
 	#add_subdirectory(
 		#${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-src/googletest
 		#${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-build/googletest
