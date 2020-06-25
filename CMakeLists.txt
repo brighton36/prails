@@ -38,8 +38,8 @@ if(NOT googletest_POPULATED)
 endif()
 
 include_directories(
-	${prails_BINARY_DIR}/_deps/pistache-src/include
-	${prails_BINARY_DIR}/_deps/spdlog-src/include)
+  ${CMAKE_CURRENT_BINARY_DIR}/_deps/pistache-src/include
+  ${CMAKE_CURRENT_BINARY_DIR}/_deps/spdlog-src/include)
 
 #######################################################################
 include(GNUInstallDirs)
