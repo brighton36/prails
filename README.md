@@ -5,3 +5,4 @@ Packages needed for compile:
  - libyaml-cpp-dev
  - libsqlite3-dev
  - libmysqlclient-dev
+ - cppcheck

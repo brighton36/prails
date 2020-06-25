@@ -60,7 +60,9 @@ if (BUILD_TESTS)
       "--enable=all"
       "-DCPPCHECK"
       "-I${PROJECT_SOURCE_DIR}/include"
-      "--suppress=*:*/thirdparty/*"
+      "--suppress=unmatchedSuppression"
+      "--suppress=*:*thirdparty/*"
+      "--suppress=*:*external/*"
     )
   else()
     message("-- Cppcheck not found")
