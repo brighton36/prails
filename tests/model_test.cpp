@@ -35,7 +35,7 @@ string TesterModelTest::driver = string();
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  ConfigParser config(string(PROJECT_SOURCE_DIR)+"/config/test-server.yml");
+  ConfigParser config(string(PROJECT_SOURCE_DIR)+"/tests/config/test-server.yml");
 	Model::Initialize(config);
 
   // Set our local tests up for the right database driver:

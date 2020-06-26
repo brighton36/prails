@@ -18,7 +18,7 @@ endif()
 # Spdlog:
 FetchContent_Declare( spdlog GIT_TAG v1.6.1
 	GIT_REPOSITORY "https://github.com/gabime/spdlog.git" )
-set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "Build shared library")
+set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "Build shared object spdlog library")
 
 FetchContent_MakeAvailable(spdlog)
 FetchContent_GetProperties(spdlog)
@@ -41,25 +41,31 @@ include_directories(
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/include
   ${CMAKE_BINARY_DIR}/_deps/spdlog-src/include)
 
+include_directories(include thirdparty/include)
+include_directories(/usr/include/soci/ /usr/include/mysql/)
 #######################################################################
-include(GNUInstallDirs)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Wno-missing-field-initializers -fPIC")
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/CMakeModules)
+# Compiler Options
+include(CheckCXXCompilerFlag)
+
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra \
+  -Wno-missing-field-initializers -fPIC")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage -fstack-protector-all --param=ssp-buffer-size=4")
+  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs \
+    -ftest-coverage -fstack-protector-all --param=ssp-buffer-size=4")
 endif()
 
-include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+#######################################################################
+# Test targets
 option(BUILD_TESTS "build tests alongside the project" ON)
 
 if (BUILD_TESTS)
@@ -82,36 +88,23 @@ if (BUILD_TESTS)
     message("-- Cppcheck not found")
     set(CMAKE_CXX_CPPCHECK "")
   endif()
-    INCLUDE(Dart)
-    add_custom_target(test_memcheck COMMAND ${CMAKE_CTEST_COMMAND}  
-      --force-new-ctest-process --test-action memcheck)
-    add_custom_target(coverage COMMAND ${CMAKE_CTEST_COMMAND}  
-      --force-new-ctest-process --test-action coverage)
-endif()
-
-include_directories(include thirdparty/include)
-include_directories(/usr/include/soci/ /usr/include/mysql/)
-add_subdirectory(lib)
-
-if (BUILD_TESTS)
-  # TODO: remove the current... potentiolally
-	#add_subdirectory(
-		#${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-src/googletest
-		#${CMAKE_CURRENT_BINARY_DIR}/_deps/googletest-build/googletest
-		#EXCLUDE_FROM_ALL)
-	#include_directories(
-		#${CMAKE_CURRENT_BINARY_DIR}/external/pistache-prefix/src/pistache/tests)
-
+  INCLUDE(Dart)
+  add_custom_target(test_memcheck COMMAND ${CMAKE_CTEST_COMMAND}  
+    --force-new-ctest-process --test-action memcheck)
+  add_custom_target(coverage COMMAND ${CMAKE_CTEST_COMMAND}  
+    --force-new-ctest-process --test-action coverage)
   enable_testing()
   add_subdirectory(tests)
 endif()
 
+#######################################################################
+# Project Components
+add_subdirectory(lib)
+
 add_library(prails SHARED lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
-target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3
-  -lsqlite3 -lsoci_mysql -lmysqlclient)
-target_link_libraries(prails pistache spdlog)
-target_link_libraries(prails functions server config_parser )
+target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3 -lsqlite3 
+  -lsoci_mysql -lmysqlclient pistache spdlog functions server config_parser)
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
