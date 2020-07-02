@@ -2,11 +2,12 @@
 #include "main.hpp"
 #include "controller.hpp"
 
-template<typename T> std::shared_ptr<Controller::Instance> \
-  createT(std::string name, std::string views_path) {
-    return std::make_shared<T>(name, views_path); }
+template<typename T> 
+std::shared_ptr<Controller::Instance> createT(std::string name, std::string views_path) {
+  return std::make_shared<T>(name, views_path); 
+}
 
-template<typename T> \
+template<typename T> 
 void routesT(Pistache::Rest::Router& router, std::shared_ptr<Controller::Instance> controller) { 
   T::Routes(router, controller); 
 }
@@ -21,7 +22,8 @@ struct ControllerFactory {
   typedef std::map<std::string, ControllerMapEntry> map_type;
 
   public:
-    static std::shared_ptr<Controller::Instance> createInstance(std::string const& s, std::string views_path) {
+    static std::shared_ptr<Controller::Instance>
+    createInstance(std::string const& s, std::string views_path) {
 
       map_type::iterator it = getMap()->find(s);
       if(it == getMap()->end()) return 0;
@@ -54,8 +56,8 @@ struct ControllerFactory {
 };
 
 template<typename T>
-struct ServiceRegister : ControllerFactory { 
-  ServiceRegister(std::string const& s) { 
+struct ControllerRegister : ControllerFactory { 
+  ControllerRegister(std::string const& s) { 
     ControllerMapEntry me;
     me.constructor = &createT<T>;
     me.routes = &routesT<T>;

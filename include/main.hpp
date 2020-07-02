@@ -23,3 +23,4 @@
 #include "controller_factory.hpp"
 
 #include "model.hpp"
+#include "model_factory.hpp"

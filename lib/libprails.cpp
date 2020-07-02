@@ -7,10 +7,10 @@ using namespace Pistache;
 
 enum class RunMode { WebServer, Migration };
 
-#include <iostream> // TODO: Remove
-//void prails::main(int* argc, wchar_t** argv) {
+shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
+shared_ptr<ModelFactory::map_type> ModelFactory::map = nullptr;
+
 int prails::main(int argc, char *argv[]) {
-  std::cout << "Inside the main()" << std::endl;
   string config_path;
   RunMode run_mode = RunMode::WebServer;
 
@@ -44,14 +44,10 @@ int prails::main(int argc, char *argv[]) {
     case RunMode::Migration: {
       spdlog::info("prails migration.");
 
-      // TODO: There's got to be a better registry-way to do this:
-      //Account::Migrate();
-      //Task::Migrate();
-      //Station::Migrate();
-      //StationAlternative::Migrate();
-      //StationAlias::Migrate();
-      //Season::Migrate();
-      //Agency::Migrate();
+      for (const auto &reg : ModelFactory::getRegistrations()) {
+        spdlog::info("Running migration for {}..", reg);
+        ModelFactory::migrate(reg);
+      }
       } break; 
   }
 

@@ -2,6 +2,7 @@
 #include <regex>
 
 #include "tester_models.hpp"
+#include "model_factory.hpp"
 
 using namespace std;
 

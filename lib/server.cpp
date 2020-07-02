@@ -5,8 +5,6 @@
 using namespace std;
 using namespace Pistache;
 
-shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
-
 Server::Server(ConfigParser &config) : 
 http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port()))) { 
 
