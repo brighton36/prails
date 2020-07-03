@@ -81,6 +81,7 @@ if (BUILD_TESTS)
       "-DCPPCHECK"
       "-I${PROJECT_SOURCE_DIR}/include"
       "--suppress=unmatchedSuppression"
+      "--suppress=unusedFunction:*lib/functions.cpp"
       "--suppress=*:*thirdparty/*"
       "--suppress=*:*_deps/*"
     )

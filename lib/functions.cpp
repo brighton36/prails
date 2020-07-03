@@ -1,9 +1,12 @@
-#include "main.hpp"
+#include "functions.hpp"
+#include <filesystem>
+#include <numeric>
+
 #include "rapidcsv.h"
 
 using namespace std;
 
-bool path_is_readable(string path) {
+bool path_is_readable(const string &path) {
   filesystem::path p(path);
 
   error_code ec;
@@ -15,7 +18,7 @@ bool path_is_readable(string path) {
     (perms & filesystem::perms::others_read) != filesystem::perms::none ) );
 }
 
-string remove_trailing_slash(string path) {
+string remove_trailing_slash(const string &path) {
 	smatch matches;
   if (regex_search(path, matches, regex("^(.+)[\\\\/]$"))) return matches[1];
   return path;
@@ -47,9 +50,9 @@ string join(vector<string> strings, string delim) {
 
 bool has_any(vector<string> haystack, vector<string> needles) {
   return (find_if(haystack.begin(), haystack.end(), 
-    [&needles] (string s) { 
+    [&needles] (const string &s) { 
       return (
-        find_if(needles.begin(), needles.end(), [&s] (string n) { return n == s; }
+        find_if(needles.begin(), needles.end(), [&s] (const string &n) { return n == s; }
       ) != needles.end());
     } 
   ) != haystack.end());

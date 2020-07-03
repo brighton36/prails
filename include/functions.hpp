@@ -2,8 +2,8 @@
 #include <vector> 
 #include <regex> 
 
-bool path_is_readable(std::string);
-std::string remove_trailing_slash(std::string path);
+bool path_is_readable(const std::string &);
+std::string remove_trailing_slash(const std::string &);
 bool starts_with(std::string, std::string);
 std::string read_file(std::string path);
 std::string join(std::vector<std::string>, std::string);

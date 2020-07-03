@@ -1,4 +1,5 @@
-#include "main.hpp"
+#include <filesystem>
+#include "functions.hpp"
 #include "controller.hpp"
 
 using namespace std;

@@ -1,6 +1,7 @@
 #include "prails.hpp"
-#include "main.hpp"
 #include "server.hpp"
+#include "model_factory.hpp"
+#include "controller_factory.hpp"
 
 using namespace std;
 using namespace Pistache;
@@ -23,26 +24,32 @@ int prails::main(int argc, char *argv[]) {
   }
 
   if ( (args.size() == 0 ) || has_any(args, {"-h", "--help"}) || (config_path.empty() ) ) {
-    cout << "TODO: Help" << endl;
+    cout << fmt::format("Usage: {} [-S] [-M] CONFIG_FILE\n"
+      "A web server built with prails.\n\n"
+      "-S           Run in server mode.\n"
+      "-M           Run model migrations.\n"
+      "--help       Display this help and exit.\n\n"
+      "The supplied CONFIG_FILE is expected to be a yaml-formatted server configuration file.\n"
+      "(See https://en.wikipedia.org/wiki/YAML for details on the YAML file format.)\n\n",
+      argv[0]);
     return 1;
   }
 
   spdlog::info("Using config={}", config_path);
 
   ConfigParser config(config_path);
-
   Model::Initialize(config);
   Controller::Initialize(config);
 
   switch (run_mode) {
     case RunMode::WebServer: {
-      spdlog::info("prails log started. Cores={} Threads={}", 
+      spdlog::info("{} log started. Cores={} Threads={}", args[0],
         hardware_concurrency(), config.threads());
       Server server(config);
       server.start();
       } break;
     case RunMode::Migration: {
-      spdlog::info("prails migration.");
+      spdlog::info("{} migration.", args[0]);
 
       for (const auto &reg : ModelFactory::getRegistrations()) {
         spdlog::info("Running migration for {}..", reg);

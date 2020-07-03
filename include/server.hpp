@@ -1,5 +1,5 @@
 #pragma once
-#include "main.hpp"
+#include "controller.hpp"
 #include "config_parser.hpp"
 
 class Server {
