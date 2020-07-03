@@ -15,6 +15,7 @@ int prails::main(int argc, char *argv[]) {
   string config_path;
   RunMode run_mode = RunMode::WebServer;
 
+  string program_name = string(argv[0]);
   vector<string> args(argv + 1, argv + argc);
 
   for(string a : args) {
@@ -31,7 +32,7 @@ int prails::main(int argc, char *argv[]) {
       "--help       Display this help and exit.\n\n"
       "The supplied CONFIG_FILE is expected to be a yaml-formatted server configuration file.\n"
       "(See https://en.wikipedia.org/wiki/YAML for details on the YAML file format.)\n\n",
-      argv[0]);
+      program_name);
     return 1;
   }
 
@@ -43,13 +44,13 @@ int prails::main(int argc, char *argv[]) {
 
   switch (run_mode) {
     case RunMode::WebServer: {
-      spdlog::info("{} log started. Cores={} Threads={}", args[0],
+      spdlog::info("{} log started. Cores={} Threads={}", program_name,
         hardware_concurrency(), config.threads());
       Server server(config);
       server.start();
       } break;
     case RunMode::Migration: {
-      spdlog::info("{} migration.", args[0]);
+      spdlog::info("{} migration.", program_name);
 
       for (const auto &reg : ModelFactory::getRegistrations()) {
         spdlog::info("Running migration for {}..", reg);
