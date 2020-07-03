@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include "prails.hpp"
 #include "server.hpp"
 #include "model_factory.hpp"
@@ -15,7 +17,7 @@ int prails::main(int argc, char *argv[]) {
   string config_path;
   RunMode run_mode = RunMode::WebServer;
 
-  string program_name = string(argv[0]);
+  string program_name = filesystem::path(string(argv[0])).filename();
   vector<string> args(argv + 1, argv + argc);
 
   for(string a : args) {
