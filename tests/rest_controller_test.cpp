@@ -22,12 +22,12 @@ class TaskControllerFixture : public ::testing::Test {
   struct tm default_epoch = DefaultEpoch();
 
   Model::Record default_task = {
-		{"name",        "Test Task"},
-		{"active",      (int) true},
-		{"description", default_description},
-		{"updated_at",  default_epoch},
-		{"created_at",  default_epoch}
-	};
+    {"name",        "Test Task"},
+    {"active",      (int) true},
+    {"description", default_description},
+    {"updated_at",  default_epoch},
+    {"created_at",  default_epoch}
+  };
 
   static tm DefaultEpoch() {
     struct tm ret;
@@ -75,10 +75,10 @@ int main(int argc, char **argv) {
 TEST_F(TaskControllerFixture, index) {
 
   for( unsigned int i = 0; i < 10; i++ ) {
-		Task task(default_task);
-		task.name("Task "+to_string(i));
+    Task task(default_task);
+    task.name("Task "+to_string(i));
     EXPECT_NO_THROW(task.save());
-	}
+  }
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 10);
 
@@ -208,10 +208,10 @@ TEST_F(TaskControllerFixture, del) {
 
 TEST_F(TaskControllerFixture, multiple_update) {
   for( unsigned int i = 0; i < 4; i++ ) {
-		Task task(default_task);
-		task.name("Task "+to_string(i));
+    Task task(default_task);
+    task.name("Task "+to_string(i));
     EXPECT_NO_THROW(task.save());
-	}
+  }
 
   auto tasks = Task::Select("select id from tasks");
   EXPECT_EQ(tasks.size(), 4);
@@ -248,10 +248,10 @@ TEST_F(TaskControllerFixture, multiple_update) {
 
 TEST_F(TaskControllerFixture, multiple_delete) {
   for( unsigned int i = 0; i < 4; i++ ) {
-		Task task(default_task);
-		task.name("Task "+to_string(i));
+    Task task(default_task);
+    task.name("Task "+to_string(i));
     EXPECT_NO_THROW(task.save());
-	}
+  }
 
   auto tasks = Task::Select("select id from tasks");
   EXPECT_EQ(tasks.size(), 4);

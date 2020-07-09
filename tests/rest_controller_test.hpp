@@ -1,5 +1,6 @@
 #include <sstream>
 #include "rest_controller.hpp"
+#include "model_factory.hpp"
 
 class Task : public Model::Instance<Task> { 
   public:
@@ -42,6 +43,11 @@ class Task : public Model::Instance<Task> {
         {"updated_at", "datetime"},
       });
     }
+
+  private:
+    // NOTE: This isn't used in our rest_controller_test, but I included it here
+    // so that we can include this in the vuecrudd:
+    static ModelRegister<Task> reg;
 };
 
 class TasksController : public Controller::RestInstance<TasksController, Task> { 
