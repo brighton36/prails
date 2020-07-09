@@ -22,7 +22,6 @@ namespace Controller {
       virtual T modelDefault(std::tm) { return T(); };
       virtual void modelUpdate(T &, Controller::PostBody &, std::tm) = 0;
   };
-
 }
 
 template <class U, class T>
@@ -79,7 +78,7 @@ Controller::RestInstance<U,T>::index(const Pistache::Rest::Request&) {
   // TODO: Introduce a RestController::modelSelect(). pull the json requirement 
   // out of the model class, into this
   for (auto &model: T::Select(fmt::format("select * from {}", T::Definition.table_name)))
-    index.push_back(model.toJson());
+    index.push_back(Controller::ModelToJson(model));
 
   return Controller::Response(index);
 }
@@ -90,7 +89,7 @@ Controller::RestInstance<U,T>::read(const Pistache::Rest::Request& request) {
   auto id = request.param(":id").as<int>();
   auto model = T::Find(id);
 
-  return (model) ? Controller::Response((*model).toJson()) : 
+  return (model) ? Controller::Response(Controller::ModelToJson(*model)) : 
     Controller::Response(404, "text/html", "TODO: 404");
 }
 

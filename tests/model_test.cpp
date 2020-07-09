@@ -3,6 +3,7 @@
 
 #include "tester_models.hpp"
 #include "model_factory.hpp"
+#include "controller.hpp"
 
 using namespace std;
 
@@ -589,7 +590,7 @@ TEST_F(TesterModelTest, to_json_test) {
 
   TesterModel retrieved_model = *TesterModel::Find(store_model.id().value());
 
-  auto json = retrieved_model.toJson();
+  auto json = Controller::ModelToJson(retrieved_model);
 
   EXPECT_TRUE(json["id"] > 0);
   EXPECT_EQ(json["first_name"], "John");
@@ -600,7 +601,7 @@ TEST_F(TesterModelTest, to_json_test) {
   EXPECT_EQ(json["unlucky_number"], 3);
   EXPECT_EQ(json["is_enthusiastic"], 1);
   EXPECT_EQ(json["is_lazy"], 0);
-  EXPECT_EQ(json["updated_at"], Model::JsonTime(now));
+  EXPECT_EQ(json["updated_at"], tm_to_json(now));
 
   EXPECT_EQ(json["double_test"], nullptr); 
   EXPECT_EQ(json["int_test"], nullptr); 

@@ -39,10 +39,13 @@ endif()
 
 include_directories(
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/include
+  ${CMAKE_BINARY_DIR}/_deps/pistache-src/third-party/rapidjson/include
   ${CMAKE_BINARY_DIR}/_deps/spdlog-src/include)
 
 include_directories(include thirdparty/include)
 include_directories(/usr/include/soci/ /usr/include/mysql/)
+link_directories( ${CMAKE_BINARY_DIR}/_deps/spdlog-build)
+
 #######################################################################
 # Compiler Options
 include(CheckCXXCompilerFlag)
@@ -106,6 +109,7 @@ add_library(prails SHARED lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
 target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3 -lsqlite3 
-  -lsoci_mysql -lmysqlclient pistache spdlog functions server config_parser)
+  -lsoci_mysql -lmysqlclient -lspdlog pistache spdlog functions server config_parser)
+
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")

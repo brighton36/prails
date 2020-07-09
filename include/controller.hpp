@@ -10,6 +10,7 @@
 
 #include "exceptions.hpp"
 #include "config_parser.hpp"
+#include "functions.hpp"
 
 namespace Controller {
 	class Instance;
@@ -24,6 +25,24 @@ namespace Controller {
     // NOTE: I'm not crazy about this interface. But it works for now...
     GetConfig((ConfigParser *)&config);
 	}
+
+  template <class T>
+  nlohmann::json ModelToJson(T &model) {
+    auto json = nlohmann::json();
+    for (const auto &key : model.recordKeys())
+      if (auto value = model.recordGet(key); value.has_value())
+        std::visit([&key, &json](auto&& typeA) {
+          using U = std::decay_t<decltype(typeA)>;
+          if constexpr(std::is_same_v<U, std::tm>)
+            json[key] = tm_to_json(typeA);
+          else
+            json[key] = typeA;
+        }, value.value());
+      else
+        json[key] = nullptr;
+
+    return json;
+  }
 
   class PostBody {
     public:

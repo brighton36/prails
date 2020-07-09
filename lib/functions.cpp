@@ -109,3 +109,11 @@ void each_row_in_csv(const std::string &path,
     for_each_row(i, row);
   }
 }
+
+std::string tm_to_json(std::tm tm_time) {
+  char buffer [80];
+  long int t = timegm(&tm_time);
+  strftime(buffer,80,"%Y-%m-%dT%H:%M:%S.0%z",std::gmtime(&t));
+  return std::string(buffer);
+}
+

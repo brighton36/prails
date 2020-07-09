@@ -8,7 +8,6 @@
 
 #include "spdlog/spdlog.h"
 
-#include <nlohmann/json.hpp> 
 #include <soci/soci.h>
 #include <soci/sqlite3/soci-sqlite3.h>
 #include <soci/mysql/soci-mysql.h>
@@ -116,13 +115,6 @@ namespace Model {
     return *gmtime(&t_time);
   }
 
-  std::string inline JsonTime(std::tm tm_time) {
-    char buffer [80];
-    long int t = timegm(&tm_time);
-    strftime(buffer,80,"%Y-%m-%dT%H:%M:%S.0%z",std::gmtime(&t));
-    return std::string(buffer);
-  }
-
   // NOTE: See the GetSession() notes above.
   void inline Initialize(ConfigParser &config) {
     GetSession(config.threads(), config.dsn());
@@ -171,7 +163,6 @@ namespace Model {
       void save();
       void remove();
       void resetStateCache();
-      nlohmann::json toJson();
       Model::RecordErrors errors();
       std::optional<Model::RecordValue> recordGet(const std::string&);
       void recordSet(const std::string&, const std::optional<Model::RecordValue>&);
@@ -451,24 +442,6 @@ std::vector<std::string> Model::Instance<T>::recordKeys() {
     ret.push_back(col_val.first); });
 
   return ret;
-}
-
-template <class T>
-nlohmann::json Model::Instance<T>::toJson() {
-  auto json = nlohmann::json();
-  for (const auto &key : recordKeys())
-    if (auto value = recordGet(key); value.has_value())
-      std::visit([&key, &json](auto&& typeA) {
-        using U = std::decay_t<decltype(typeA)>;
-        if constexpr(std::is_same_v<U, std::tm>)
-          json[key] = Model::JsonTime(typeA);
-        else
-          json[key] = typeA;
-      }, value.value());
-    else
-      json[key] = nullptr;
-
-  return json;
 }
 
 // This gives us the record keys that are persistable:
