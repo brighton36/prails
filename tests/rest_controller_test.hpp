@@ -66,27 +66,3 @@ class TasksController : public Controller::RestInstance<TasksController, Task> {
     static ControllerRegister<TasksController> reg;
 };
 
-class TaskControllerFixture : public ::testing::Test {
- public:
-
- protected:
-  std::string default_name = "Test Task";
-  std::string default_description = "lorem ipsum sit dolor";
-  std::string epoch_as_jsontime = "2020-04-14T16:35:12.0+0000";
-  struct tm default_epoch = DefaultEpoch();
-
-  Model::Record default_task = {
-		{"name",        "Test Task"},
-		{"active",      (int) true},
-		{"description", default_description},
-		{"updated_at",  default_epoch},
-		{"created_at",  default_epoch}
-	};
-
-  static tm DefaultEpoch() {
-    struct tm ret;
-    std::istringstream ss("2020-04-14 16:35:12");
-    ss >> std::get_time(&ret, "%Y-%m-%d %H:%M:%S");
-    return ret;
-  }
-};

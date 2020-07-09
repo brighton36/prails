@@ -12,8 +12,32 @@
 using namespace std;
 using namespace prails::utilities;
 
-// TODO: Can I move this into the controller above?
-const std::string TasksController::route_prefix = "/api/demo/tasks";
+class TaskControllerFixture : public ::testing::Test {
+ public:
+
+ protected:
+  std::string default_name = "Test Task";
+  std::string default_description = "lorem ipsum sit dolor";
+  std::string epoch_as_jsontime = "2020-04-14T16:35:12.0+0000";
+  struct tm default_epoch = DefaultEpoch();
+
+  Model::Record default_task = {
+		{"name",        "Test Task"},
+		{"active",      (int) true},
+		{"description", default_description},
+		{"updated_at",  default_epoch},
+		{"created_at",  default_epoch}
+	};
+
+  static tm DefaultEpoch() {
+    struct tm ret;
+    std::istringstream ss("2020-04-14 16:35:12");
+    ss >> std::get_time(&ret, "%Y-%m-%d %H:%M:%S");
+    return ret;
+  }
+};
+
+const std::string TasksController::route_prefix = "/tasks";
 
 shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
 
@@ -58,7 +82,7 @@ TEST_F(TaskControllerFixture, index) {
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 10);
 
-  auto res = get_client().Get("/api/demo/tasks");
+  auto res = get_client().Get("/tasks");
 
   EXPECT_EQ(res->status, 200);
 
@@ -87,7 +111,7 @@ TEST_F(TaskControllerFixture, read) {
   Task task(default_task);
   EXPECT_NO_THROW(task.save());
 
-  auto res = get_client().Get(fmt::format("/api/demo/tasks/{}", *task.id()).c_str());
+  auto res = get_client().Get(fmt::format("/tasks/{}", *task.id()).c_str());
 
   EXPECT_EQ(res->status, 200);
 
@@ -108,7 +132,7 @@ TEST_F(TaskControllerFixture, create) {
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 0);
 
-  auto res = get_client().Post("/api/demo/tasks", 
+  auto res = get_client().Post("/tasks", 
     "name=Test+Task&description=lorem+ipsum+sit+dolor&active=1",
     "application/x-www-form-urlencoded");
 
@@ -137,7 +161,7 @@ TEST_F(TaskControllerFixture, update) {
   EXPECT_NO_THROW(task.save());
 
   auto res = get_client().Put(
-    fmt::format("/api/demo/tasks/{}", *task.id()).c_str(), 
+    fmt::format("/tasks/{}", *task.id()).c_str(), 
     "name=Updated+Task&description=updated+lorem+ipsum+sit+dolor&active=0",
     "application/x-www-form-urlencoded");
 
@@ -171,7 +195,7 @@ TEST_F(TaskControllerFixture, del) {
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 1);
 
-  auto res = get_client().Delete(fmt::format("/api/demo/tasks/{}", *task.id()).c_str());
+  auto res = get_client().Delete(fmt::format("/tasks/{}", *task.id()).c_str());
 
   EXPECT_EQ(res->status, 200);
 
@@ -192,7 +216,7 @@ TEST_F(TaskControllerFixture, multiple_update) {
   auto tasks = Task::Select("select id from tasks");
   EXPECT_EQ(tasks.size(), 4);
 
-  auto res = get_client().Post("/api/demo/tasks/multiple-update", fmt::format(
+  auto res = get_client().Post("/tasks/multiple-update", fmt::format(
     "ids%5B%5D={}&ids%5B%5D={}&request%5Bdescription%5D=New+Description",
     *tasks[1].id(), *tasks[3].id() ), "application/x-www-form-urlencoded");
 
@@ -232,7 +256,7 @@ TEST_F(TaskControllerFixture, multiple_delete) {
   auto tasks = Task::Select("select id from tasks");
   EXPECT_EQ(tasks.size(), 4);
 
-  auto res = get_client().Post("/api/demo/tasks/multiple-delete", fmt::format(
+  auto res = get_client().Post("/tasks/multiple-delete", fmt::format(
     "ids%5B%5D={}&ids%5B%5D={}&request%5Bdescription%5D=New+Description",
     *tasks[1].id(), *tasks[3].id() ), "application/x-www-form-urlencoded");
 
