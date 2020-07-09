@@ -14,7 +14,7 @@
 
 #include "exceptions.hpp"
 #include "config_parser.hpp"
-#include "functions.hpp"
+#include "utilities.hpp"
 
 #define MODEL_CONSTRUCTOR(classname) \
   explicit classname() : Instance(&classname::Definition) {}; \
@@ -518,7 +518,7 @@ void Model::Instance<T>::save() {
       if (key != definition->pkey_column) set_pairs.push_back(key+" = :"+key);
 
     soci::statement update = (sql.prepare << fmt::format("update {} set {} where id = :id", 
-      definition->table_name, join(set_pairs, ", ") ), soci::use(this));
+      definition->table_name, prails::utilities::join(set_pairs, ", ") ), soci::use(this));
     update.execute(true);
 
     // See the below note on last_insert_id. Seems like affected_rows is similarly
@@ -532,7 +532,8 @@ void Model::Instance<T>::save() {
       values.push_back(":"+key); });
 
     sql << fmt::format("insert into {} ({}) values({})", definition->table_name, 
-      join(columns, ", "), join(values, ", ")), soci::use(this);
+      prails::utilities::join(columns, ", "), prails::utilities::join(values, ", ")), 
+      soci::use(this);
 
     // NOTE: There appears to be a bug in the pooled session code of soci, that 
     // causes weird typecasting issues from the long long return value of 

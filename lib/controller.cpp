@@ -1,9 +1,9 @@
 #include <filesystem>
-#include "functions.hpp"
 #include "controller.hpp"
 
 using namespace std;
 using namespace Pistache;
+using namespace prails::utilities;
 
 void Controller::Instance::route_action(string action, const Rest::Request& request, 
   Http::ResponseWriter response) {

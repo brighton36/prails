@@ -3,10 +3,11 @@
 
 #include "server.hpp"
 #include "controller_factory.hpp"
-#include "functions.hpp"
+#include "utilities.hpp"
 
 using namespace std;
 using namespace Pistache;
+using namespace prails::utilities;
 
 Server::Server(ConfigParser &config) : 
 http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port()))) { 

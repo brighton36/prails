@@ -1,10 +1,12 @@
-#include "functions.hpp"
+#include "utilities.hpp"
 #include <filesystem>
 #include <numeric>
 
 #include "rapidcsv.h"
 
 using namespace std;
+
+namespace prails::utilities {
 
 bool path_is_readable(const string &path) {
   filesystem::path p(path);
@@ -117,3 +119,4 @@ std::string tm_to_json(std::tm tm_time) {
   return std::string(buffer);
 }
 
+}

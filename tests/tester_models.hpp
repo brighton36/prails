@@ -1,5 +1,7 @@
 #include "model.hpp"
 
+using namespace prails::utilities;
+
 class TimeModel : public Model::Instance<TimeModel> { 
   public :
     MODEL_CONSTRUCTOR(TimeModel)

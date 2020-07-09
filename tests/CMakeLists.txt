@@ -5,13 +5,13 @@ function(declare_test test_name)
   add_executable(${TEST_EXECUTABLE} ${TEST_SOURCE})
   target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main -lpthread 
     -lsoci_core -lsoci_sqlite3 -lsqlite3 -lsoci_mysql -lmysqlclient 
-		pistache spdlog functions config_parser )
+		pistache spdlog utilities config_parser )
   add_test(${test_name} ${TEST_EXECUTABLE})
 endfunction()
 
 add_definitions(-DPROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-declare_test(functions_test)
+declare_test(utilities_test)
 declare_test(config_parser_test)
 declare_test(model_test)
 

@@ -10,6 +10,7 @@
 #include "rest_controller_test.hpp"
 
 using namespace std;
+using namespace prails::utilities;
 
 // TODO: Can I move this into the controller above?
 const std::string TasksController::route_prefix = "/api/demo/tasks";

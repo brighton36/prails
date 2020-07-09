@@ -1,5 +1,5 @@
 #include "config_parser.hpp"
-#include "functions.hpp"
+#include "utilities.hpp"
 
 #include "yaml-cpp/yaml.h"
 
@@ -7,6 +7,7 @@
 #include <regex>
 
 using namespace std;
+using namespace prails::utilities;
 
 ConfigParser::ConfigParser() {
   port_ = 8080;

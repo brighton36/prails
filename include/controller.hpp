@@ -10,7 +10,7 @@
 
 #include "exceptions.hpp"
 #include "config_parser.hpp"
-#include "functions.hpp"
+#include "utilities.hpp"
 
 namespace Controller {
 	class Instance;
@@ -34,7 +34,7 @@ namespace Controller {
         std::visit([&key, &json](auto&& typeA) {
           using U = std::decay_t<decltype(typeA)>;
           if constexpr(std::is_same_v<U, std::tm>)
-            json[key] = tm_to_json(typeA);
+            json[key] = prails::utilities::tm_to_json(typeA);
           else
             json[key] = typeA;
         }, value.value());
@@ -115,7 +115,7 @@ namespace Controller {
         const std::string &body, 
         const std::vector<std::shared_ptr<Pistache::Http::Header::Header>> &headers) :
 				code_(code), content_type_(content_type), body_(body), headers_(headers) {};
-			Response(nlohmann::json body, unsigned int code = 200) :
+			explicit Response(nlohmann::json body, unsigned int code = 200) :
 				code_(code), content_type_("text/json"), body_(body.dump()) {};
 
 			unsigned int code() { return code_; };

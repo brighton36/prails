@@ -7,6 +7,7 @@
 
 using namespace std;
 using namespace Pistache;
+using namespace prails::utilities;
 
 enum class RunMode { WebServer, Migration };
 

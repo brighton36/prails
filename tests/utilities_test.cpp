@@ -1,22 +1,23 @@
-#include "functions.hpp"
+#include "utilities.hpp"
 
 #include "gtest/gtest.h"
 
 using namespace std;
+using namespace prails::utilities;
 
-TEST(functions_test, starts_with) {
+TEST(utilities_test, starts_with) {
   ASSERT_TRUE(true  == starts_with("/public/html/test_file.txt", "/public/html" ));
   ASSERT_TRUE(false == starts_with("/public/", "/public/html/"));
   ASSERT_TRUE(false == starts_with("/etc/password", "/public/html/"));
 }
 
-TEST(functions_test, join) {
+TEST(utilities_test, join) {
   ASSERT_TRUE( join({"John", "Chris", "Nancy"}, ", ") == "John, Chris, Nancy" );
   ASSERT_TRUE( join({"John", "Chris"}, ", ") == "John, Chris" );
   ASSERT_TRUE( join({"John"}, ", ") == "John" );
 }
 
-TEST(functions_test, regex_from_string) {
+TEST(utilities_test, regex_from_string) {
   regex anything = regex_from_string("//");
 
   ASSERT_TRUE( regex_match("", anything) );
@@ -38,7 +39,7 @@ TEST(functions_test, regex_from_string) {
   ASSERT_TRUE( regex_match("test@account.com", regex_from_string("/.+@.+/")) );
 }
 
-TEST(functions_test, replace_all) {
+TEST(utilities_test, replace_all) {
   ASSERT_EQ( replace_all("All cats are good cats", "cats", "dogs"), "All dogs are good dogs" );
   ASSERT_EQ( replace_all("All cats are good cats", "are", "resent"), "All cats resent good cats" );
 }

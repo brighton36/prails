@@ -84,7 +84,7 @@ if (BUILD_TESTS)
       "-DCPPCHECK"
       "-I${PROJECT_SOURCE_DIR}/include"
       "--suppress=unmatchedSuppression"
-      "--suppress=unusedFunction:*lib/functions.cpp"
+      "--suppress=unusedFunction:*lib/utilities.cpp"
       "--suppress=*:*thirdparty/*"
       "--suppress=*:*_deps/*"
     )
@@ -109,7 +109,7 @@ add_library(prails SHARED lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
 target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3 -lsqlite3 
-  -lsoci_mysql -lmysqlclient -lspdlog pistache spdlog functions server config_parser)
+  -lsoci_mysql -lmysqlclient -lspdlog pistache spdlog utilities server config_parser)
 
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
