@@ -16,6 +16,12 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
   this->path_views = config.views_path();
   this->threads = config.threads();
 
+  if (!path_is_readable(this->path_static))
+    throw invalid_argument("Unreadable or missing static_resource_path.");
+
+  if (!path_is_readable(this->path_views))
+    throw invalid_argument("Unreadable or missing views_path.");
+
   string mime_type_file = string(config.config_path())+"/mime_types.json"; 
 
   nlohmann::json mime_type_json = nlohmann::json::parse(ifstream(mime_type_file));

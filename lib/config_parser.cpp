@@ -47,15 +47,6 @@ ConfigParser::ConfigParser(string config_file_path) {
   if(!regex_match(log_level(), regex("^(?:critical|err|warn|info|debug|trace|off)$")))
     throw invalid_argument("Invalid Log Level specified in config");
 
-  // TODO: This needs to be checked... but not in here
-  /*
-  if (!path_is_readable(static_resource_path()))
-    throw invalid_argument("Unreadable or missing static_resource_path.");
-
-  if (!path_is_readable(views_path()))
-    throw invalid_argument("Unreadable or missing views_path.");
-  */
-
   if (!path_is_readable(config_path()))
     throw invalid_argument("Unreadable or missing config_path.");
   
