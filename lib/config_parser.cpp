@@ -58,6 +58,8 @@ ConfigParser::ConfigParser(string config_file_path) {
   if (!path_is_readable(config_path()))
     throw invalid_argument("Unreadable or missing config_path.");
   
+  std::cout << "base_path:" << base_path << std::endl;
+  std::cout << "static_resource_path_:" << static_resource_path_ << std::endl;
   std::cout << "static_resource_path:" << static_resource_path() << std::endl;
   spdlog::set_level(spdlog_level());
 }
