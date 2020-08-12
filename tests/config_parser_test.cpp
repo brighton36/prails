@@ -6,7 +6,7 @@
 using namespace std;
 
 TEST(config_parser, test_server_config) {
-  string config_path = string(PROJECT_SOURCE_DIR)+"/tests/config/test-server.yml";
+  string config_path = std::string(TESTS_CONFIG_FILE);
   ConfigParser config(config_path);
 
   EXPECT_EQ(config.port(), 8081);

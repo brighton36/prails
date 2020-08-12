@@ -11,8 +11,8 @@ using namespace prails::utilities;
 
 enum class RunMode { WebServer, Migration };
 
-shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
-shared_ptr<ModelFactory::map_type> ModelFactory::map = nullptr;
+INIT_MODEL_REGISTRY()
+INIT_CONTROLLER_REGISTRY()
 
 int prails::main(int argc, char *argv[]) {
   string config_path;

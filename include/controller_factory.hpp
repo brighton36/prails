@@ -1,6 +1,11 @@
 #pragma once
 #include "controller.hpp"
 
+#define INIT_CONTROLLER_REGISTRY() \
+  std::shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
+
+#define REGISTER_CONTROLLER(name) ControllerRegister<name> name::reg(#name);
+
 template<typename T> 
 std::shared_ptr<Controller::Instance> createT(std::string name, std::string views_path) {
   return std::make_shared<T>(name, views_path); 

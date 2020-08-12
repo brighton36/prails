@@ -1,13 +1,22 @@
-#include "gtest/gtest.h"
+#include "prails_gtest.hpp"
+
 #include <regex>
 
 #include "tester_models.hpp"
-#include "model_factory.hpp"
 #include "controller.hpp"
 
 using namespace std;
 
-class TesterModelTest : public ::testing::Test {
+INIT_MODEL_REGISTRY()
+INIT_CONTROLLER_REGISTRY()
+
+REGISTER_MODEL(TimeModel)
+REGISTER_MODEL(ValidationModel)
+REGISTER_MODEL(TesterModel)
+
+INIT_PRAILS_TEST_ENVIRONMENT()
+
+class TesterModelTest : public PrailsControllerTest {
  public:
    static string driver;
 
@@ -31,35 +40,17 @@ class TesterModelTest : public ::testing::Test {
     Model::ColumnTypes({{"id", COL_TYPE(long)}}),
 		Model::Validations()
 	};
-};
-string TesterModelTest::driver = string();
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-
-  ConfigParser config(string(PROJECT_SOURCE_DIR)+"/tests/config/test-server.yml");
-	Model::Initialize(config);
-
-  // Set our local tests up for the right database driver:
-  smatch matches;
-  std::string dsn = config.dsn();
-	if (regex_search(dsn, matches, regex("^([^\\:]+)")))
-    TesterModelTest::driver = string(matches[1]);
-
-  //spdlog::set_level(spdlog::level::debug);
-
-  TesterModel::Migrate();
-  ValidationModel::Migrate();
-  TimeModel::Migrate();
   
-  auto ret = RUN_ALL_TESTS();
+  std::string DatabaseDriver() {
+    // Set our local tests up for the right database driver:
+    smatch matches;
+    std::string dsn = PrailsControllerTest::config->dsn();
+    if (regex_search(dsn, matches, regex("^([^\\:]+)")))
+      return string(matches[1]);
 
-  TesterModel::DropTable();
-  ValidationModel::DropTable();
-  TimeModel::DropTable();
-
-  return ret;
-}
+    return string();
+  }
+};
 
 TEST_F(TesterModelTest, getters_and_setters) {
   TesterModel model(john_smith_record);
@@ -142,7 +133,7 @@ TEST_F(TesterModelTest, time_column) {
   //       soci to handle the id. So, I'll just use fmt here for now.
   auto tester_models = TimeModel::Select( fmt::format( 
     "select *, tested_at as other_at, {} as tested_at_string from time_models where id = :id",
-    (TesterModelTest::driver == "mysql") ? 
+    (DatabaseDriver() == "mysql") ? 
       "DATE_FORMAT(tested_at, '%Y-%m-%d %H:%i:%S')" :
       "strftime('%Y-%m-%d %H:%M:%S',tested_at)"), 
     (long) store_model.id().value() );

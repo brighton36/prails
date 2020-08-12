@@ -10,10 +10,12 @@ function(declare_test test_name)
 endfunction()
 
 add_definitions(-DPROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+add_definitions(-DTESTS_CONFIG_FILE="${PROJECT_SOURCE_DIR}/tests/config/test-server.yml")
 
 declare_test(utilities_test)
 declare_test(config_parser_test)
 declare_test(model_test)
+target_link_libraries(run_model_test server)
 
 # TODO: Dry this up ...
 declare_test(post_body_test)

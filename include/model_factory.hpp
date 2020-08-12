@@ -1,6 +1,11 @@
 #pragma once
 #include "model.hpp"
 
+#define INIT_MODEL_REGISTRY() \
+  std::shared_ptr<ModelFactory::map_type> ModelFactory::map = nullptr;
+
+#define REGISTER_MODEL(name) ModelRegister<name> name::reg(#name);
+
 template<typename T> 
 void migrateT() { 
   T::Migrate(); 

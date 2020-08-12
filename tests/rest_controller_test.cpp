@@ -1,76 +1,46 @@
-#include "gtest/gtest.h"
-#include "httplib.h"
+#include "prails_gtest.hpp"
 
 // Seems like the GCC compiler doesn't like this in the rapidjson:
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #include "rapidjson/document.h"
 
-#include "server.hpp"
-#include "model.hpp"
 #include "rest_controller_test.hpp"
 
 using namespace std;
 using namespace prails::utilities;
 
-class TaskControllerFixture : public ::testing::Test {
- public:
+class TaskControllerFixture : public PrailsControllerTest {
+  protected:
+    std::string default_name = "Test Task";
+    std::string default_description = "lorem ipsum sit dolor";
+    std::string epoch_as_jsontime = "2020-04-14T16:35:12.0+0000";
+    struct tm default_epoch = DefaultEpoch();
 
- protected:
-  std::string default_name = "Test Task";
-  std::string default_description = "lorem ipsum sit dolor";
-  std::string epoch_as_jsontime = "2020-04-14T16:35:12.0+0000";
-  struct tm default_epoch = DefaultEpoch();
+    Model::Record default_task = {
+      {"name",        "Test Task"},
+      {"active",      (int) true},
+      {"description", default_description},
+      {"updated_at",  default_epoch},
+      {"created_at",  default_epoch}
+    };
 
-  Model::Record default_task = {
-    {"name",        "Test Task"},
-    {"active",      (int) true},
-    {"description", default_description},
-    {"updated_at",  default_epoch},
-    {"created_at",  default_epoch}
-  };
-
-  static tm DefaultEpoch() {
-    struct tm ret;
-    std::istringstream ss("2020-04-14 16:35:12");
-    ss >> std::get_time(&ret, "%Y-%m-%d %H:%M:%S");
-    return ret;
-  }
+    static tm DefaultEpoch() {
+      struct tm ret;
+      std::istringstream ss("2020-04-14 16:35:12");
+      ss >> std::get_time(&ret, "%Y-%m-%d %H:%M:%S");
+      return ret;
+    }
 };
 
 const std::string TasksController::route_prefix = "/tasks";
 
-shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
+INIT_MODEL_REGISTRY()
+INIT_CONTROLLER_REGISTRY()
 
-ControllerRegister<TasksController> TasksController::reg("tasks");
+REGISTER_MODEL(Task)
+REGISTER_CONTROLLER(TasksController)
 
-// TODO: We Should dry this up against the auth. Maybe make it static in the fixture
-Pistache::Address addr;
-
-httplib::Client get_client() {
-  return httplib::Client(addr.host().c_str(), (uint16_t) addr.port());
-}
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-
-  ConfigParser config(string(PROJECT_SOURCE_DIR)+"/tests/config/test-server.yml");
-
-  //spdlog::set_level(spdlog::level::debug);
-
-  Model::Initialize(config);
-
-  Task::Migrate();
-
-  Server server(config);
-  server.startThreaded();
-
-  addr = Pistache::Address(config.address(), config.port());
-  
-  auto ret = RUN_ALL_TESTS();
-  server.shutdown();
-
-  return ret;
-}
+INIT_PRAILS_TEST_ENVIRONMENT()
 
 TEST_F(TaskControllerFixture, index) {
 
@@ -82,7 +52,7 @@ TEST_F(TaskControllerFixture, index) {
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 10);
 
-  auto res = get_client().Get("/tasks");
+  auto res = browser().Get("/tasks");
 
   EXPECT_EQ(res->status, 200);
 
@@ -111,7 +81,7 @@ TEST_F(TaskControllerFixture, read) {
   Task task(default_task);
   EXPECT_NO_THROW(task.save());
 
-  auto res = get_client().Get(fmt::format("/tasks/{}", *task.id()).c_str());
+  auto res = browser().Get(fmt::format("/tasks/{}", *task.id()).c_str());
 
   EXPECT_EQ(res->status, 200);
 
@@ -132,7 +102,7 @@ TEST_F(TaskControllerFixture, create) {
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 0);
 
-  auto res = get_client().Post("/tasks", 
+  auto res = browser().Post("/tasks", 
     "name=Test+Task&description=lorem+ipsum+sit+dolor&active=1",
     "application/x-www-form-urlencoded");
 
@@ -160,7 +130,7 @@ TEST_F(TaskControllerFixture, update) {
   Task task(default_task);
   EXPECT_NO_THROW(task.save());
 
-  auto res = get_client().Put(
+  auto res = browser().Put(
     fmt::format("/tasks/{}", *task.id()).c_str(), 
     "name=Updated+Task&description=updated+lorem+ipsum+sit+dolor&active=0",
     "application/x-www-form-urlencoded");
@@ -195,7 +165,7 @@ TEST_F(TaskControllerFixture, del) {
 
   EXPECT_EQ(Task::Count("select count(*) from tasks"), 1);
 
-  auto res = get_client().Delete(fmt::format("/tasks/{}", *task.id()).c_str());
+  auto res = browser().Delete(fmt::format("/tasks/{}", *task.id()).c_str());
 
   EXPECT_EQ(res->status, 200);
 
@@ -216,7 +186,7 @@ TEST_F(TaskControllerFixture, multiple_update) {
   auto tasks = Task::Select("select id from tasks");
   EXPECT_EQ(tasks.size(), 4);
 
-  auto res = get_client().Post("/tasks/multiple-update", fmt::format(
+  auto res = browser().Post("/tasks/multiple-update", fmt::format(
     "ids%5B%5D={}&ids%5B%5D={}&request%5Bdescription%5D=New+Description",
     *tasks[1].id(), *tasks[3].id() ), "application/x-www-form-urlencoded");
 
@@ -256,7 +226,7 @@ TEST_F(TaskControllerFixture, multiple_delete) {
   auto tasks = Task::Select("select id from tasks");
   EXPECT_EQ(tasks.size(), 4);
 
-  auto res = get_client().Post("/tasks/multiple-delete", fmt::format(
+  auto res = browser().Post("/tasks/multiple-delete", fmt::format(
     "ids%5B%5D={}&ids%5B%5D={}&request%5Bdescription%5D=New+Description",
     *tasks[1].id(), *tasks[3].id() ), "application/x-www-form-urlencoded");
 

@@ -21,6 +21,9 @@ class TimeModel : public Model::Instance<TimeModel> {
     static void Migrate() {
 		  CreateTable({ {"tested_at", "datetime"} });
     };
+
+  private:
+    static ModelRegister<TimeModel> reg;
 };
 
 class ValidationModel : public Model::Instance<ValidationModel> { 
@@ -73,6 +76,9 @@ class ValidationModel : public Model::Instance<ValidationModel> {
         {"is_lazy", "integer"},
       });
     };
+
+  private:
+    static ModelRegister<ValidationModel> reg;
 };
 
 class TesterModel : public Model::Instance<TesterModel> { 
@@ -131,4 +137,7 @@ class TesterModel : public Model::Instance<TesterModel> {
         {"updated_at", "datetime"}
       });
     };
+
+  private:
+    static ModelRegister<TesterModel> reg;
 };
