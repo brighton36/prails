@@ -16,12 +16,6 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
   this->path_views = config.views_path();
   this->threads = config.threads();
 
-  if (!path_is_readable(this->path_static))
-    throw invalid_argument("Unreadable or missing static_resource_path.");
-
-  if (!path_is_readable(this->path_views))
-    throw invalid_argument("Unreadable or missing views_path.");
-
   string mime_type_file = string(config.config_path())+"/mime_types.json"; 
 
   nlohmann::json mime_type_json = nlohmann::json::parse(ifstream(mime_type_file));
@@ -67,44 +61,50 @@ void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter respo
 	auto valid_path = regex("^[0-9 a-z\\-\\_\\.\\/]+$", regex_constants::icase);
 
   string resource = request.resource();
-  string local_path = filesystem::weakly_canonical(path_static+resource);
-  
-  // To Ensure they didn't ../ their way out of public. We test that the begining
-  // of local_path matches path_static, and that the path's characters are sane.
-  if (!starts_with(local_path,path_static) || (!regex_match(local_path, valid_path))) {
-    spdlog::error("Resource Denied: {}", resource);
-    response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
-  } else if ((!path_is_readable(local_path)) || (!filesystem::is_regular_file(local_path))) {
-    spdlog::error("Resource Unreadable: {}", resource);
+
+  if (!path_is_readable(this->path_static)) {
+    spdlog::error("Static Resource path unreadable upon request: {}", resource);
     response.send(Http::Code::Not_Found, "TODO: 404", MIME(Text, Html));
-  } else if (local_path != string(filesystem::canonical(local_path))) {
-    // This should prevent us from following filesystem links. Note that 
-    // canonical requires the path to exist, unlike weakly_canonical.
-    spdlog::error("Resource Path Denied: {}", resource);
-    response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
   } else {
-    spdlog::info("Serving: {}", resource);
+    string local_path = filesystem::weakly_canonical(path_static+resource);
+    
+    // To Ensure they didn't ../ their way out of public. We test that the begining
+    // of local_path matches path_static, and that the path's characters are sane.
+    if (!starts_with(local_path,path_static) || (!regex_match(local_path, valid_path))) {
+      spdlog::error("Resource Denied: {}", resource);
+      response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
+    } else if ((!path_is_readable(local_path)) || (!filesystem::is_regular_file(local_path))) {
+      spdlog::error("Resource Unreadable: {}", resource);
+      response.send(Http::Code::Not_Found, "TODO: 404", MIME(Text, Html));
+    } else if (local_path != string(filesystem::canonical(local_path))) {
+      // This should prevent us from following filesystem links. Note that 
+      // canonical requires the path to exist, unlike weakly_canonical.
+      spdlog::error("Resource Path Denied: {}", resource);
+      response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
+    } else {
+      spdlog::info("Serving: {}", resource);
 
-    smatch matches;
-    Http::Mime::MediaType mime_type;
-    string extension;
+      smatch matches;
+      Http::Mime::MediaType mime_type;
+      string extension;
 
-    if (regex_search(local_path, matches, regex("([^.]+)$")))
-      extension = matches[1];
+      if (regex_search(local_path, matches, regex("([^.]+)$")))
+        extension = matches[1];
 
-    if ((extension.empty()) || (!extension_to_mime.count(extension))) {
-      spdlog::warn("Unable to find a content type for the resource: {}", resource);
-      mime_type = MIME(Text, Plain);
-    } else 
-      try {
-        // Unfortunately, pistache has a very limited number of mime types that it
-        // includes classes for. But, catch seems seems to work:
-        mime_type = Http::Mime::MediaType::fromString(extension_to_mime[extension]);
-      } catch(const Http::HttpError& e) {
-        spdlog::warn("Serving */* for the resource: {}", resource);
-        mime_type = MIME(Star, Star);
+      if ((extension.empty()) || (!extension_to_mime.count(extension))) {
+        spdlog::warn("Unable to find a content type for the resource: {}", resource);
+        mime_type = MIME(Text, Plain);
+      } else {
+        try {
+          // Unfortunately, pistache has a very limited number of mime types that it
+          // includes classes for. But, catch seems seems to work:
+          mime_type = Http::Mime::MediaType::fromString(extension_to_mime[extension]);
+        } catch(const Http::HttpError& e) {
+          spdlog::warn("Serving */* for the resource: {}", resource);
+          mime_type = MIME(Star, Star);
+        }
       }
-
-    Http::serveFile(response, local_path, mime_type);
+      Http::serveFile(response, local_path, mime_type);
+    }
   }
 }
