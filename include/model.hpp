@@ -102,6 +102,12 @@ namespace Model {
         soci::session & sql = default_pool->at(i);
         sql.set_log_stream(&spd_debug_out); // TODO: Not thread-safe, I think
         sql.open(dsn);
+				if (sql.get_backend_name() == "mysql") { 
+          // Ensure that we automatically reconnect, if our connection times out
+					auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
+					bool reconnect = 1;
+					mysql_options(mysqlbackend->conn_, MYSQL_OPT_RECONNECT, &reconnect);
+				}
       }
     } else if ((threads != 0) || (!dsn.empty()))
         throw ModelException(
