@@ -7,7 +7,7 @@ include(${CMAKE_ROOT}/Modules/FetchContent.cmake)
 
 # Pistache:
 FetchContent_Declare( pistache
-	GIT_REPOSITORY "https://github.com/oktal/pistache.git" )
+  GIT_REPOSITORY "https://github.com/oktal/pistache.git" )
 FetchContent_MakeAvailable(pistache)
 FetchContent_GetProperties(pistache)
 if(NOT pistache_POPULATED)
@@ -17,7 +17,7 @@ endif()
 
 # Spdlog:
 FetchContent_Declare( spdlog GIT_TAG v1.6.1
-	GIT_REPOSITORY "https://github.com/gabime/spdlog.git" )
+  GIT_REPOSITORY "https://github.com/gabime/spdlog.git" )
 set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "Build shared object spdlog library")
 
 FetchContent_MakeAvailable(spdlog)
@@ -109,7 +109,7 @@ add_library(prails SHARED lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
 target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3 -lsqlite3 
-  -lsoci_mysql -lmysqlclient -lspdlog pistache spdlog utilities server config_parser)
+  -lsoci_mysql -lmysqlclient -lspdlog pistache_static spdlog utilities server config_parser)
 
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")

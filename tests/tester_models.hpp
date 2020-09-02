@@ -6,20 +6,20 @@ class TimeModel : public Model::Instance<TimeModel> {
   public :
     MODEL_CONSTRUCTOR(TimeModel)
     MODEL_ACCESSOR(id, long)
-		MODEL_ACCESSOR(tested_at, std::tm)
+    MODEL_ACCESSOR(tested_at, std::tm)
 
-  	inline static const Model::Definition Definition {
-			"id",
-			"time_models", 
-			Model::ColumnTypes( { 
-        {"id",      	COL_TYPE(long)},
-				{"tested_at", COL_TYPE(std::tm)}
+    inline static const Model::Definition Definition {
+      "id",
+      "time_models", 
+      Model::ColumnTypes( { 
+        {"id",        COL_TYPE(long)},
+        {"tested_at", COL_TYPE(std::tm)}
       }),
-			Model::Validations()
+      Model::Validations()
     };
 
     static void Migrate() {
-		  CreateTable({ {"tested_at", "datetime"} });
+      CreateTable({ {"tested_at", "datetime"} });
     };
 
   private:
@@ -36,18 +36,18 @@ class ValidationModel : public Model::Instance<ValidationModel> {
     MODEL_ACCESSOR(favorite_number, long)
     MODEL_ACCESSOR(company_id, long)
 
-  	inline static const Model::Definition Definition {
-			"id",
-			"validation_models", 
-			Model::ColumnTypes( { 
+    inline static const Model::Definition Definition {
+      "id",
+      "validation_models", 
+      Model::ColumnTypes( { 
         {"id",      COL_TYPE(long)},
-				{"email",   COL_TYPE(std::string)},
-				{"favorite_number", COL_TYPE(long)},
-				{"company_id", COL_TYPE(long)},
-				{"is_company_admin", COL_TYPE(int)},
-				{"is_lazy", COL_TYPE(int)}
+        {"email",   COL_TYPE(std::string)},
+        {"favorite_number", COL_TYPE(long)},
+        {"company_id", COL_TYPE(long)},
+        {"is_company_admin", COL_TYPE(int)},
+        {"is_lazy", COL_TYPE(int)}
       }),
-			Model::Validations( {
+      Model::Validations( {
         Model::Validates::NotNull("email"),
         Model::Validates::Matches("email", regex_from_string("/.+@.+/")),
         Model::Validates::IsUnique("email"),
@@ -68,7 +68,7 @@ class ValidationModel : public Model::Instance<ValidationModel> {
     };
 
     static void Migrate() {
-		  CreateTable({
+      CreateTable({
         {"email", "varchar(100)"},
         {"favorite_number", "integer"},
         {"company_id", "integer"},
@@ -99,30 +99,30 @@ class TesterModel : public Model::Instance<TesterModel> {
     MODEL_ACCESSOR(is_lazy, int)
     MODEL_ACCESSOR(updated_at, std::tm)
 
-  	inline static const Model::Definition Definition {
-			"id",
-			"tester_models", 
-			Model::ColumnTypes({
-				{"id",              COL_TYPE(long)},
-				{"first_name",      COL_TYPE(std::string)},
-				{"last_name",       COL_TYPE(std::string)},
-				{"email",           COL_TYPE(std::string)},
-				{"password",        COL_TYPE(std::string)},
-				{"favorite_number", COL_TYPE(long)},
-				{"unlucky_number",  COL_TYPE(long)},
-				{"double_test",			COL_TYPE(double)},
-				{"ulong_test",			COL_TYPE(unsigned long)},
-				{"int_test",				COL_TYPE(int)},
-				{"is_enthusiastic", COL_TYPE(int)},
-				{"is_lazy",         COL_TYPE(int)},
-				{"updated_at",      COL_TYPE(std::tm)}
-			}),
-			Model::Validations({})
-		}; 
+    inline static const Model::Definition Definition {
+      "id",
+      "tester_models", 
+      Model::ColumnTypes({
+        {"id",              COL_TYPE(long)},
+        {"first_name",      COL_TYPE(std::string)},
+        {"last_name",       COL_TYPE(std::string)},
+        {"email",           COL_TYPE(std::string)},
+        {"password",        COL_TYPE(std::string)},
+        {"favorite_number", COL_TYPE(long)},
+        {"unlucky_number",  COL_TYPE(long)},
+        {"double_test",     COL_TYPE(double)},
+        {"ulong_test",      COL_TYPE(unsigned long)},
+        {"int_test",        COL_TYPE(int)},
+        {"is_enthusiastic", COL_TYPE(int)},
+        {"is_lazy",         COL_TYPE(int)},
+        {"updated_at",      COL_TYPE(std::tm)}
+      }),
+      Model::Validations({})
+    }; 
 
-		// Database Driver Concerns:
+    // Database Driver Concerns:
     static void Migrate() {
-		  CreateTable({
+      CreateTable({
         {"first_name", "varchar(100)"},
         {"last_name", "varchar(100)"},
         {"email", "varchar(100)"},

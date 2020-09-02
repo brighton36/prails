@@ -33,13 +33,13 @@ class TesterModelTest : public PrailsControllerTest {
     {"untyped_string", "this wasnt in the constructor"}
   };
 
-	// We use this to test out Validations that only reference the state of 'record'
-	Model::Definition empty_definition {
-		"id",
-		"unavailable_table", 
+  // We use this to test out Validations that only reference the state of 'record'
+  Model::Definition empty_definition {
+    "id",
+    "unavailable_table", 
     Model::ColumnTypes({{"id", COL_TYPE(long)}}),
-		Model::Validations()
-	};
+    Model::Validations()
+  };
   
   std::string DatabaseDriver() {
     // Set our local tests up for the right database driver:
@@ -96,28 +96,28 @@ TEST_F(TesterModelTest, time_column) {
 
   std::string expected_time = "Tue Dec 10 14:04:27 2019";
 
-	std::tm store_tm;
-	store_tm.tm_sec = 27;
-	store_tm.tm_min = 4;
-	store_tm.tm_hour = 14;
-	store_tm.tm_mday = 10;
-	store_tm.tm_mon = 11;
-	store_tm.tm_year = 119;
-	store_tm.tm_zone = 0;
-	store_tm.tm_gmtoff = 0;
+  std::tm store_tm;
+  store_tm.tm_sec = 27;
+  store_tm.tm_min = 4;
+  store_tm.tm_hour = 14;
+  store_tm.tm_mday = 10;
+  store_tm.tm_mon = 11;
+  store_tm.tm_year = 119;
+  store_tm.tm_zone = 0;
+  store_tm.tm_gmtoff = 0;
 
   // NOTE: everything is stored in gmtime(), there is no zone info in the db
 
   // Test the above tm, before it enters the model:
   EXPECT_EQ(expected_time, tm_to_string(store_tm));
 
-	TimeModel store_model({{"tested_at", store_tm}});
+  TimeModel store_model({{"tested_at", store_tm}});
 
   // Test the recordGet on a ColumnTypes() declared column:
   EXPECT_EQ(expected_time, tm_to_string(*store_model.tested_at()));
 
   // Test the recordGet on a non-ColumnTypes() declared column:
-	store_model.recordSet("new_field", store_tm);
+  store_model.recordSet("new_field", store_tm);
   EXPECT_EQ(expected_time, 
     tm_to_string(std::get<tm>(*store_model.recordGet("new_field"))));
 
@@ -128,7 +128,7 @@ TEST_F(TesterModelTest, time_column) {
   // Test the save() / Find():
   EXPECT_EQ(expected_time, tm_to_string(*retrieved_model.tested_at()));
 
-	// Let's see what happens with a few other SQL query fields:
+  // Let's see what happens with a few other SQL query fields:
   // NOTE: For reasons unknown, it seems that soci has a bug here when we use
   //       soci to handle the id. So, I'll just use fmt here for now.
   auto tester_models = TimeModel::Select( fmt::format( 
@@ -145,7 +145,7 @@ TEST_F(TesterModelTest, time_column) {
   EXPECT_EQ("2019-12-10 14:04:27", 
     std::get<std::string>(*tester_models[0].recordGet("tested_at_string")));
   
-	// Let's just test the accessor a bit, on a change
+  // Let's just test the accessor a bit, on a change
   // I'm not sure what this tests. I guess, the tested_at, and an update.
   store_tm.tm_mon = 2;
   retrieved_model.tested_at(store_tm);

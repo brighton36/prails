@@ -3,9 +3,7 @@ function(declare_test test_name)
   set(TEST_SOURCE ${test_name}.cpp)
 
   add_executable(${TEST_EXECUTABLE} ${TEST_SOURCE})
-  target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main -lpthread 
-    -lsoci_core -lsoci_sqlite3 -lsqlite3 -lsoci_mysql -lmysqlclient 
-		pistache spdlog utilities config_parser )
+  target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main prails )
   add_test(${test_name} ${TEST_EXECUTABLE})
 endfunction()
 

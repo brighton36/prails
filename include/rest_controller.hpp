@@ -5,9 +5,9 @@
 
 namespace Controller {
 
-	template <class U, class T>
-	class RestInstance : public Controller::Instance {
-		public:
+  template <class U, class T>
+  class RestInstance : public Controller::Instance {
+    public:
       RestInstance(const std::string &, const std::string &);
       static void Routes(Pistache::Rest::Router&, std::shared_ptr<Controller::Instance>);
 

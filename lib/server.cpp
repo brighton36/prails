@@ -58,7 +58,7 @@ void Server::setupRoutes() {
 }
 
 void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter response) {
-	auto valid_path = regex("^[0-9 a-z\\-\\_\\.\\/]+$", regex_constants::icase);
+  auto valid_path = regex("^[0-9 a-z\\-\\_\\.\\/]+$", regex_constants::icase);
 
   string resource = request.resource();
 

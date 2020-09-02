@@ -21,7 +21,7 @@ bool path_is_readable(const string &path) {
 }
 
 string remove_trailing_slash(const string &path) {
-	smatch matches;
+  smatch matches;
   if (regex_search(path, matches, regex("^(.+)[\\\\/]$"))) return matches[1];
   return path;
 }
@@ -44,7 +44,7 @@ string read_file(string path) {
 }
 
 string join(vector<string> strings, string delim) {
-	return accumulate(strings.begin(), strings.end(), string(), 
+  return accumulate(strings.begin(), strings.end(), string(), 
     [&](const string& a, const string& b) -> string { 
         return a + (a.length() > 0 ? delim : "") + b; 
     });
@@ -61,7 +61,7 @@ bool has_any(vector<string> haystack, vector<string> needles) {
 }
 
 regex regex_from_string(string re) {
-	smatch re_parts;
+  smatch re_parts;
   if (regex_search(re, re_parts, regex("^\\/(.*)\\/([i]?)$")))
     return (re_parts[2] == "i") ? 
       regex((string)re_parts[1], regex_constants::icase) : regex((string) re_parts[1]);
@@ -74,17 +74,17 @@ regex regex_from_string(string re) {
 /// - Inspired by James Kanze.
 /// - http://stackoverflow.com/questions/20406744/
 std::string replace_all(const std::string & haystack, const std::string & needle,
-	const std::string & replace) {
-	string result;
-	size_t needle_len = needle.size();
-	size_t pos,from=0;
-	while ( string::npos != ( pos=haystack.find(needle,from) ) ) {
-		result.append( haystack, from, pos-from );
-		result.append( replace );
-		from = pos + needle_len;
-	}
-	result.append( haystack, from , string::npos );
-	return result;
+  const std::string & replace) {
+  string result;
+  size_t needle_len = needle.size();
+  size_t pos,from=0;
+  while ( string::npos != ( pos=haystack.find(needle,from) ) ) {
+    result.append( haystack, from, pos-from );
+    result.append( replace );
+    from = pos + needle_len;
+  }
+  result.append( haystack, from , string::npos );
+  return result;
 }
 
 void each_row_in_csv(const std::string &path, 

@@ -13,7 +13,7 @@
 #include "utilities.hpp"
 
 namespace Controller {
-	class Instance;
+  class Instance;
 
   ConfigParser inline GetConfig(ConfigParser *set_config = nullptr) { 
     static ConfigParser config;
@@ -21,10 +21,10 @@ namespace Controller {
     return config;
   }
 
-	void inline Initialize(ConfigParser &config) {
+  void inline Initialize(ConfigParser &config) {
     // NOTE: I'm not crazy about this interface. But it works for now...
     GetConfig((ConfigParser *)&config);
-	}
+  }
 
   template <class T>
   nlohmann::json ModelToJson(T &model) {
@@ -58,7 +58,7 @@ namespace Controller {
       // attacker can cause us problems by recursing the input to a significant depth.
       explicit PostBody(unsigned int depth = 0) : depth(depth) {}
       explicit PostBody(const std::string &, unsigned int depth = 0);
-			PostBody::Array keys();
+      PostBody::Array keys();
       void set(const std::string &, const std::string &);
 
       template <typename... Args>
@@ -76,16 +76,16 @@ namespace Controller {
         return (hashes.count(key)) ? std::make_optional(hashes[key]) : std::nullopt;
       }
 
-			// NOTE: We're really only supporting collections here for now. If needed,
-			//       I suppose we could implement an each_pair for hashes...
+      // NOTE: We're really only supporting collections here for now. If needed,
+      //       I suppose we could implement an each_pair for hashes...
       template <typename... Args>
       void each(std::string key, Args... args) {
-				if constexpr (sizeof...(Args) > 1) {
-					if (hashes.count(key)) hashes[key].each(args...);
-				} else {
-					if (collections.count(key)) 
-						std::for_each(collections[key].cbegin(), collections[key].cend(), args...);
-				}
+        if constexpr (sizeof...(Args) > 1) {
+          if (hashes.count(key)) hashes[key].each(args...);
+        } else {
+          if (collections.count(key)) 
+            std::for_each(collections[key].cbegin(), collections[key].cend(), args...);
+        }
       }
 
       template <typename... Args>
@@ -106,21 +106,21 @@ namespace Controller {
       std::map<std::string, PostBody::Hash> hashes;
   };
 
-	class Response {
-		public:
-			Response(unsigned int code, const std::string &content_type, 
+  class Response {
+    public:
+      Response(unsigned int code, const std::string &content_type, 
         const std::string &body) : code_(code), content_type_(content_type), 
         body_(body) {};
-			Response(unsigned int code, const std::string &content_type, 
+      Response(unsigned int code, const std::string &content_type, 
         const std::string &body, 
         const std::vector<std::shared_ptr<Pistache::Http::Header::Header>> &headers) :
-				code_(code), content_type_(content_type), body_(body), headers_(headers) {};
-			explicit Response(nlohmann::json body, unsigned int code = 200) :
-				code_(code), content_type_("text/json"), body_(body.dump()) {};
+        code_(code), content_type_(content_type), body_(body), headers_(headers) {};
+      explicit Response(nlohmann::json body, unsigned int code = 200) :
+        code_(code), content_type_("text/json"), body_(body.dump()) {};
 
-			unsigned int code() { return code_; };
-			std::string content_type() { return content_type_; };
-			std::string body() { return body_; };
+      unsigned int code() { return code_; };
+      std::string content_type() { return content_type_; };
+      std::string body() { return body_; };
 
       void addHeader(std::shared_ptr<Pistache::Http::Header::Header> header) {
         headers_.push_back(header);
@@ -142,12 +142,12 @@ namespace Controller {
         );
       };
 
-		protected:
-			unsigned int code_;
-			std::string content_type_;
-			std::string body_;
-			std::vector<std::shared_ptr<Pistache::Http::Header::Header>> headers_;
-	};
+    protected:
+      unsigned int code_;
+      std::string content_type_;
+      std::string body_;
+      std::vector<std::shared_ptr<Pistache::Http::Header::Header>> headers_;
+  };
 
   class CorsOkResponse : public Response{
     inline static const std::vector<std::string> DefaultMethods = {

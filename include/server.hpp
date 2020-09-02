@@ -3,12 +3,12 @@
 #include "config_parser.hpp"
 
 class Server {
-	public:
+  public:
     explicit Server(ConfigParser &);
     void start();
     void startThreaded();
     void shutdown();
-	private:
+  private:
     size_t threads;
     std::string path_static;
     std::string path_views;
