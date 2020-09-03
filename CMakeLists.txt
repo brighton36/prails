@@ -108,7 +108,7 @@ add_subdirectory(lib)
 add_library(prails SHARED lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
-target_link_libraries(prails -lpthread -lsoci_core -lsoci_sqlite3 -lsqlite3 
+target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 -lsqlite3 
   -lsoci_mysql -lmysqlclient -lspdlog pistache_static spdlog utilities server config_parser)
 
 target_link_libraries(prails 
