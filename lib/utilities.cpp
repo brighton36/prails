@@ -1,8 +1,7 @@
 #include "utilities.hpp"
 #include <filesystem>
+#include <fstream>
 #include <numeric>
-
-#include "rapidcsv.h"
 
 using namespace std;
 
@@ -85,31 +84,6 @@ std::string replace_all(const std::string & haystack, const std::string & needle
   }
   result.append( haystack, from , string::npos );
   return result;
-}
-
-void each_row_in_csv(const std::string &path, 
-  std::function<void(unsigned int &, std::vector<std::optional<std::string>> &)> for_each_row) {
-  // NOTE: This is a little unpolished, but it's only used by the migrations to 
-  // insert "SELECT * from table INTO OUTFILE" csv's.
-  rapidcsv::Document doc(path, rapidcsv::LabelParams(-1, -1),
-    rapidcsv::SeparatorParams(',', false, false, true ));
-
-  auto convCell = [](const std::string& in, std::optional<std::string>& out) { 
-    std::smatch matches;
-    if (in == "\\N")
-      out = std::nullopt;
-    else if (regex_search(in, matches, std::regex("^\\\"(.*)\\\"$"))) 
-      out = std::make_optional(replace_all(std::string(matches[1]), "\\\"", "\""));
-    else
-      out = std::make_optional(in); 
-  };
-
-  for (unsigned int i = 0; i < doc.GetRowCount(); i++) {
-    std::vector<std::optional<std::string>> row;
-    for (unsigned int j = 0; j < doc.GetColumnCount(); j++)
-      row.push_back(doc.GetCell<std::optional<std::string>>(j, i, convCell));
-    for_each_row(i, row);
-  }
 }
 
 std::string tm_to_json(std::tm tm_time) {

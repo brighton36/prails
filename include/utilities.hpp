@@ -11,7 +11,5 @@ namespace prails::utilities {
   bool has_any(std::vector<std::string> haystack, std::vector<std::string> needles);
   std::regex regex_from_string(std::string);
   std::string replace_all(const std::string &, const std::string &,const std::string &);
-  void each_row_in_csv(const std::string &, 
-    std::function<void(unsigned int &, std::vector<std::optional<std::string>> &)>);
   std::string tm_to_json(std::tm tm_time);
 }
