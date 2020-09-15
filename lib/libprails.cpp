@@ -26,40 +26,40 @@ int prails::main(int argc, char *argv[]) {
 
   // NOTE: We remove the entries in the args list as we recognize them. We
   //       save anything we don't recognize, for use below.
-	for (auto it = args.begin(); it != args.end(); it++) {
-		string arg = *it;
-		args.erase(it--);
+  for (auto it = args.begin(); it != args.end(); it++) {
+    string arg = *it;
+    args.erase(it--);
 
-		if (arg == "-f") {
-			// Advance the pointer, and store the next string as our config path.
-			it++;
-			if (it == args.end()) 
-				throw invalid_argument("-f specified, but missing param");
+    if (arg == "-f") {
+      // Advance the pointer, and store the next string as our config path.
+      it++;
+      if (it == args.end()) 
+        throw invalid_argument("-f specified, but missing param");
 
-			config_path = *it;
-			args.erase(it--);
-		}
-		else if ( (arg == "--help") || (arg == "-h") ) {
-			run_mode = RunMode::Help;
-			break;
-		}
-		else if (arg == "migrate") {
-			run_mode = RunMode::Migration;
-			break;
-		}
-		else if (arg == "server") {
-			run_mode = RunMode::WebServer;
-			break;
-		}
-		else if (arg == "output") {
-			run_mode = RunMode::OutputUrl;
-			break;
-		}
-		else {
-			throw invalid_argument(fmt::format("Unrecognized argument \"{}\"", arg));
-			break;
-		}
-	}
+      config_path = *it;
+      args.erase(it--);
+    }
+    else if ( (arg == "--help") || (arg == "-h") ) {
+      run_mode = RunMode::Help;
+      break;
+    }
+    else if (arg == "migrate") {
+      run_mode = RunMode::Migration;
+      break;
+    }
+    else if (arg == "server") {
+      run_mode = RunMode::WebServer;
+      break;
+    }
+    else if (arg == "output") {
+      run_mode = RunMode::OutputUrl;
+      break;
+    }
+    else {
+      throw invalid_argument(fmt::format("Unrecognized argument \"{}\"", arg));
+      break;
+    }
+  }
 
   ConfigParser config;
 
