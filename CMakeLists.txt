@@ -44,6 +44,7 @@ include_directories(
 
 include_directories(include thirdparty/include)
 include_directories(/usr/include/soci/ /usr/include/mysql/)
+include_directories(${CMAKE_BINARY_DIR}/_deps/pistache-src/tests) # httplib.h
 link_directories( ${CMAKE_BINARY_DIR}/_deps/spdlog-build)
 
 #######################################################################

@@ -20,8 +20,6 @@ declare_test(post_body_test)
 target_link_libraries(run_post_body_test
   "-Wl,--whole-archive" config_parser controller "-Wl,--no-whole-archive")
 
-include_directories(${CMAKE_BINARY_DIR}/_deps/pistache-src/tests)
-
 declare_test(rest_controller_test)
 target_link_libraries(run_rest_controller_test server)
 target_link_libraries(run_rest_controller_test
