@@ -116,7 +116,7 @@ namespace Controller {
         const std::vector<std::shared_ptr<Pistache::Http::Header::Header>> &headers) :
         code_(code), content_type_(content_type), body_(body), headers_(headers) {};
       explicit Response(nlohmann::json body, unsigned int code = 200) :
-        code_(code), content_type_("text/json"), 
+        code_(code), content_type_("application/json; charset=utf8"), 
         body_(body.dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore)) {};
 
       unsigned int code() { return code_; };
