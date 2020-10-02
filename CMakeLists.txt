@@ -53,6 +53,10 @@ include(CheckCXXCompilerFlag)
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra \
   -Wno-missing-field-initializers -fPIC")
+# These optimizations cause Address Boundary segfaults in soci::to_base (during
+# Count queries?) on gcc-8. Newer gcc's are not affected. In any case, we disable 
+# them: 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-forwprop -fno-tree-phiprop")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
