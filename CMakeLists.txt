@@ -6,6 +6,7 @@ project (prails VERSION 0.1)
 include(${CMAKE_ROOT}/Modules/FetchContent.cmake)
 
 # Pistache:
+set(PISTACHE_INSTALL OFF)
 FetchContent_Declare( pistache
   GIT_REPOSITORY "https://github.com/oktal/pistache.git" )
 FetchContent_MakeAvailable(pistache)
@@ -16,6 +17,7 @@ if(NOT pistache_POPULATED)
 endif()
 
 # Spdlog:
+set(SPDLOG_INSTALL ON)
 FetchContent_Declare( spdlog GIT_TAG v1.6.1
   GIT_REPOSITORY "https://github.com/gabime/spdlog.git" )
 set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "Build shared object spdlog library")
@@ -28,6 +30,7 @@ if(NOT spdlog_POPULATED)
 endif()
 
 # Google Test:
+set(INSTALL_GTEST OFF)
 FetchContent_Declare( googletest GIT_TAG master
   GIT_REPOSITORY "https://github.com/google/googletest.git" )
 FetchContent_MakeAvailable(googletest)
@@ -119,3 +122,7 @@ target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 -ls
 
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
+
+#######################################################################
+# Install Components
+install(TARGETS prails COMPONENT runtime LIBRARY DESTINATION "lib")
