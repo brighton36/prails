@@ -38,8 +38,6 @@ if(NOT googletest_POPULATED)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 endif()
 
-set(INSTALL_GTEST OFF)
-set(PISTACHE_INSTALL OFF)
 include_directories(
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/include
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/third-party/rapidjson/include
