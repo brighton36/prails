@@ -6,7 +6,6 @@ project (prails VERSION 0.1)
 include(${CMAKE_ROOT}/Modules/FetchContent.cmake)
 
 # Pistache:
-set(PISTACHE_INSTALL OFF)
 FetchContent_Declare( pistache
   GIT_REPOSITORY "https://github.com/oktal/pistache.git" )
 FetchContent_MakeAvailable(pistache)
@@ -30,7 +29,6 @@ if(NOT spdlog_POPULATED)
 endif()
 
 # Google Test:
-set(INSTALL_GTEST OFF)
 FetchContent_Declare( googletest GIT_TAG master
   GIT_REPOSITORY "https://github.com/google/googletest.git" )
 FetchContent_MakeAvailable(googletest)
@@ -40,6 +38,8 @@ if(NOT googletest_POPULATED)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 endif()
 
+set(INSTALL_GTEST OFF)
+set(PISTACHE_INSTALL OFF)
 include_directories(
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/include
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/third-party/rapidjson/include
