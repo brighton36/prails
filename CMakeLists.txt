@@ -122,4 +122,4 @@ target_link_libraries(prails
 
 #######################################################################
 # Install Components
-install(TARGETS prails COMPONENT runtime)
+install(TARGETS prails COMPONENT runtime LIBRARY DESTINATION lib)
