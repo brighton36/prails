@@ -11,6 +11,7 @@ using namespace prails::utilities;
 
 Server::Server(ConfigParser &config) : 
 http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port()))) { 
+  logger = spdlog::get("server");
 
   this->path_static = config.static_resource_path();
   this->path_views = config.views_path();
@@ -22,7 +23,7 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
   for (auto& mime_type : mime_type_json.items())
     extension_to_mime[string(mime_type.key())] = mime_type.value();
 
-  for (const auto &reg : ControllerFactory::getRegistrations())
+  for (const auto &reg : ControllerFactory::getControllerNames())
     controllers[reg] = shared_ptr<Controller::Instance>(
       ControllerFactory::createInstance(reg, this->path_views));
 
@@ -63,7 +64,7 @@ void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter respo
   string resource = request.resource();
 
   if (!path_is_readable(this->path_static)) {
-    spdlog::error("Static Resource path unreadable upon request: {}", resource);
+    logger->error("Static Resource path unreadable upon request: {}", resource);
     response.send(Http::Code::Not_Found, "TODO: 404", MIME(Text, Html));
   } else {
     string local_path = filesystem::weakly_canonical(path_static+resource);
@@ -71,18 +72,18 @@ void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter respo
     // To Ensure they didn't ../ their way out of public. We test that the begining
     // of local_path matches path_static, and that the path's characters are sane.
     if (!starts_with(local_path,path_static) || (!regex_match(local_path, valid_path))) {
-      spdlog::error("Resource Denied: {}", resource);
+      logger->error("Resource Denied: {}", resource);
       response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
     } else if ((!path_is_readable(local_path)) || (!filesystem::is_regular_file(local_path))) {
-      spdlog::error("Resource Unreadable: {}", resource);
+      logger->error("Resource Unreadable: {}", resource);
       response.send(Http::Code::Not_Found, "TODO: 404", MIME(Text, Html));
     } else if (local_path != string(filesystem::canonical(local_path))) {
       // This should prevent us from following filesystem links. Note that 
       // canonical requires the path to exist, unlike weakly_canonical.
-      spdlog::error("Resource Path Denied: {}", resource);
+      logger->error("Resource Path Denied: {}", resource);
       response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
     } else {
-      spdlog::info("Serving: {}", resource);
+      logger->info("Serving: {}", resource);
 
       smatch matches;
       Http::Mime::MediaType mime_type;
@@ -92,7 +93,7 @@ void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter respo
         extension = matches[1];
 
       if ((extension.empty()) || (!extension_to_mime.count(extension))) {
-        spdlog::warn("Unable to find a content type for the resource: {}", resource);
+        logger->warn("Unable to find a content type for the resource: {}", resource);
         mime_type = MIME(Text, Plain);
       } else {
         try {
@@ -100,7 +101,7 @@ void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter respo
           // includes classes for. But, catch seems seems to work:
           mime_type = Http::Mime::MediaType::fromString(extension_to_mime[extension]);
         } catch(const Http::HttpError& e) {
-          spdlog::warn("Serving */* for the resource: {}", resource);
+          logger->warn("Serving */* for the resource: {}", resource);
           mime_type = MIME(Star, Star);
         }
       }

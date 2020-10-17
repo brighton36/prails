@@ -30,22 +30,25 @@ struct ControllerFactory {
     createInstance(std::string const& s, std::string views_path) {
 
       map_type::iterator it = getMap()->find(s);
-      if(it == getMap()->end()) return 0;
+      if(it == getMap()->end())
+        throw std::runtime_error("Controller "+s+" not found");
       return it->second.constructor(s, views_path);
     }
 
     static void setRoutes(std::string const &s, Pistache::Rest::Router& router, std::shared_ptr<Controller::Instance> controller) {
       map_type::iterator it = getMap()->find(s);
       // I guess we just silently die if the controller wasn't found...
-      if(it == getMap()->end()) return; 
+      if(it == getMap()->end()) 
+        throw std::runtime_error("Controller "+s+" not found");
 
       it->second.routes(router, controller);
     }
 
-    static std::vector<std::string> getRegistrations() {
+    static std::vector<std::string> getControllerNames() {
       std::vector<std::string> ret; 
       auto m = ControllerFactory::getMap();
-      for(auto it = m->begin(); it != m->end(); it++) ret.push_back(it->first);
+      transform(m->begin(), m->end(), back_inserter(ret), [](auto& c) { 
+        return c.first; });
       return ret;
     }
 

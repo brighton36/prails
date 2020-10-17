@@ -1,10 +1,13 @@
 #pragma once
 #include "model.hpp"
+#include "exceptions.hpp"
 
 #define INIT_MODEL_REGISTRY() \
-  std::shared_ptr<ModelFactory::map_type> ModelFactory::map = nullptr;
+  std::shared_ptr<ModelFactory::map_type> ModelFactory::models = std::make_shared<ModelFactory::map_type>(); \
+  std::shared_ptr<ModelFactory::dsn_type> ModelFactory::dsns = std::make_shared<ModelFactory::dsn_type>();
 
 #define REGISTER_MODEL(name) ModelRegister<name> name::reg(#name);
+#define REGISTER_DSN(name, value) ModelFactory::dsn(#name, #value);
 
 template<typename T> 
 void migrateT() { 
@@ -18,32 +21,68 @@ struct ModelMapEntry{
 
 struct ModelFactory {
   typedef std::map<std::string, ModelMapEntry> map_type;
+  typedef std::map<std::string, std::shared_ptr<soci::connection_pool>> dsn_type;
 
   public:
 
     static void migrate(std::string const& s) {
-      map_type::iterator it = getMap()->find(s);
-      // I guess we just silently die if the model wasn't found...
-      if(it == getMap()->end()) return; 
+      map_type::iterator it = models->find(s);
+      if(it == models->end())
+        throw std::runtime_error("Migration "+s+" not found");
 
       it->second.migrate();
     }
 
-    static std::vector<std::string> getRegistrations() {
+    static std::vector<std::string> getModelNames() {
       std::vector<std::string> ret; 
-      auto m = ModelFactory::getMap();
-      for(auto it = m->begin(); it != m->end(); it++) ret.push_back(it->first);
+      transform(models->begin(), models->end(), back_inserter(ret), [](auto& c) { 
+        return c.first; });
       return ret;
     }
 
-  protected:
-    static std::shared_ptr<map_type> getMap() {
-      if(!map) { map = std::make_shared<map_type>(); } 
-      return map; 
+    static std::vector<std::string> getDsns() {
+      std::vector<std::string> ret; 
+      transform(dsns->begin(), dsns->end(), back_inserter(ret), [](auto& c) { 
+        return c.first; });
+      return ret;
+    }
+
+    static soci::session getSession(std::string name) {
+      if (dsns->count(name) == 0)
+        throw std::runtime_error("Dsn "+name+" not found");
+
+      return soci::session(*(*dsns)[name]); 
+    }
+
+    static void Dsn(std::string name, std::string value, unsigned int threads) {
+      if (dsns->count(name) > 0)
+        throw std::runtime_error("Dsn "+name+" already established");
+
+      if (threads == 0 || name.empty())
+        throw ModelException(
+        "Unable to retrieve a database session. "
+        "The database connection has not yet been initialized.");
+
+      std::shared_ptr<soci::connection_pool> connection_pool = \
+        std::make_shared<soci::connection_pool>(threads);
+
+      for (unsigned int i = 0; i != threads; ++i) {
+        soci::session & sql = connection_pool->at(i);
+        sql.open(value);
+        if (sql.get_backend_name() == "mysql") { 
+          // Ensure that we automatically reconnect, if our connection times out
+          auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
+          bool reconnect = 1;
+          mysql_options(mysqlbackend->conn_, MYSQL_OPT_RECONNECT, &reconnect);
+        }
+      }
+
+      dsns->insert(std::make_pair(name, connection_pool));
     }
 
   private:
-    static std::shared_ptr<map_type> map;
+    static std::shared_ptr<map_type> models;
+    static std::shared_ptr<dsn_type> dsns;
 };
 
 template<typename T>
@@ -52,7 +91,7 @@ struct ModelRegister : ModelFactory {
     ModelMapEntry me;
     me.migrate = &migrateT<T>;
 
-    getMap()->insert(std::make_pair(s, me));
+    models->insert(std::make_pair(s, me));
   }
 };
 

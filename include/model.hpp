@@ -12,6 +12,7 @@
 #include <soci/sqlite3/soci-sqlite3.h>
 #include <soci/mysql/soci-mysql.h>
 
+#include "model_factory.hpp"
 #include "exceptions.hpp"
 #include "config_parser.hpp"
 #include "utilities.hpp"
@@ -43,14 +44,6 @@ constexpr std::size_t variant_index() {
   }
 } 
 
-class SpdoutStringbuf : public std::stringbuf {
-  public:
-    virtual std::streamsize xsputn( const char_type* s, std::streamsize count ) {
-      if (count > 1) spdlog::debug("DB Query: {}", std::string(s));
-      return count;
-    }
-};
-
 namespace Model {
   class Definition;
 
@@ -72,58 +65,18 @@ namespace Model {
   };
   typedef std::vector<Validator> Validations;
 
-
-  // NOTE: This is a bit ... unpolished. The TLDR here is that namespace-local
-  // variables are thread-local. So, it does us no good to store these static 
-  // variables in the namespace. They're really global variables. But, I wanted
-  // to keep this library header-only, so, the compromise is to stick these
-  // static variables inside a function. Where, they are guaranteed to persist
-  // globally. The syntax of this is slightly odd right now, because it expects
-  // a single instantiation, followed by calls without parameters.
-  //
-  // It's probable that in a more finished version, we would want to store multiple
-  // pools, to support multiple simultaneous database connections. But, I have 
-  // no need for that now, so, this is the result. we're keep the initialize()
-  // interface just for the clarity of intent in the rest of the codebase.
-  soci::session inline GetSession(unsigned int threads = 0, std::string dsn = "") { 
-    static std::shared_ptr<soci::connection_pool> default_pool = nullptr;
-    static SpdoutStringbuf debug_buff;
-    static std::ostream spd_debug_out(&debug_buff);
-
-    if (default_pool == nullptr) {
-      if (threads == 0 || dsn.empty())
-        throw ModelException(
-        "Unable to retrieve a database session. "
-        "The database connection has not yet been initialized.");
-
-      default_pool = std::make_shared<soci::connection_pool>(threads);
-
-      for (unsigned int i = 0; i != threads; ++i) {
-        soci::session & sql = default_pool->at(i);
-        sql.set_log_stream(&spd_debug_out); // TODO: Not thread-safe, I think
-        sql.open(dsn);
-        if (sql.get_backend_name() == "mysql") { 
-          // Ensure that we automatically reconnect, if our connection times out
-          auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
-          bool reconnect = 1;
-          mysql_options(mysqlbackend->conn_, MYSQL_OPT_RECONNECT, &reconnect);
-        }
-      }
-    } else if ((threads != 0) || (!dsn.empty()))
-        throw ModelException(
-        "Unable to re-initialize database. The Database pool is already established");
-
-    return soci::session(*default_pool); 
-  }
+	static void Log(const std::string &query) {
+		// TODO: we can do better than this. Let's maybe take an ostream...
+    // TODO: This line seems to be returning a null pointer. Not sure if its instance or get, but I think it's get
+    // TODO: Why server2 ... let's change that...
+    std::shared_ptr<spdlog::logger> serverlog = spdlog::details::registry::instance().get("server");
+		// TODO: Check for a null pointer?
+    serverlog->debug("DB Query: {}", std::string(query));
+	}
 
   std::tm inline NowUTC() {
     time_t t_time = time(NULL);
     return *gmtime(&t_time);
-  }
-
-  // NOTE: See the GetSession() notes above.
-  void inline Initialize(ConfigParser &config) {
-    GetSession(config.threads(), config.dsn());
   }
 
   class Definition {
@@ -320,7 +273,7 @@ namespace Model {
 
           if (!hasValue(record)) return std::nullopt;
 
-          soci::session sql = Model::GetSession();
+          soci::session sql = ModelFactory::getSession("default");
           soci::statement st(sql);
 
           // Put the query together:
@@ -342,6 +295,8 @@ namespace Model {
               for (const auto &p: (*conditionals).second) where[p.first] = p.second;
             }
           }
+
+					Model::Log(query);
 
           st.exchange(soci::use(&where));
 
@@ -514,7 +469,7 @@ void Model::Instance<T>::save() {
 
   if (!isValid()) throw ModelException("Invalid Model can't be saved.");
 
-  soci::session sql = Model::GetSession();
+  soci::session sql = ModelFactory::getSession("default");
 
   std::vector<std::string> columns = modelKeys();
 
@@ -537,9 +492,13 @@ void Model::Instance<T>::save() {
     std::for_each(columns.begin(), columns.end(), [&values](auto &key) {
       values.push_back(":"+key); });
 
-    sql << fmt::format("insert into {} ({}) values({})", definition->table_name, 
-      prails::utilities::join(columns, ", "), prails::utilities::join(values, ", ")), 
-      soci::use(this);
+    std::string query = fmt::format("insert into {} ({}) values({})", 
+			definition->table_name, 
+      prails::utilities::join(columns, ", "), prails::utilities::join(values, ", "));
+
+		Model::Log(query);
+
+		sql << query, soci::use(this);
 
     // NOTE: There appears to be a bug in the pooled session code of soci, that 
     // causes weird typecasting issues from the long long return value of 
@@ -659,10 +618,12 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
 template <class T>
 void Model::Instance<T>::Remove(std::string table_name, long id) {
 
-  soci::session sql = Model::GetSession();
-  soci::statement delete_stmt = (sql.prepare << 
-    fmt::format("delete from {} where id = :id", table_name), 
-    soci::use(id, "id"));
+  soci::session sql = ModelFactory::getSession("default");
+	std::string query = fmt::format("delete from {} where id = :id", table_name);
+
+	Model::Log(query);
+
+  soci::statement delete_stmt = (sql.prepare << query, soci::use(id, "id"));
   delete_stmt.execute(true);
 
   if (long affected_rows = GetAffectedRows(delete_stmt, sql); affected_rows != 1)
@@ -677,11 +638,13 @@ std::optional<T> Model::Instance<T>::Find(long id){
 
 template <class T>
 std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where_values){
-  soci::session sql = Model::GetSession();
+  soci::session sql = ModelFactory::getSession("default");
   soci::row r;
 
-  sql << fmt::format("select * from {} where {} limit 1", 
-    T::Definition.table_name, where), soci::use(&where_values), soci::into(r);
+	std::string query = fmt::format("select * from {} where {} limit 1", 
+    T::Definition.table_name, where);
+	Model::Log(query);
+  sql << query, soci::use(&where_values), soci::into(r);
 
   if (!sql.got_data()) return std::nullopt;
 
@@ -696,11 +659,12 @@ void Model::Instance<T>::Remove(long id) {
 template <class T>
 template <typename... Args> 
 std::vector<T> Model::Instance<T>::Select(std::string query, Args... args) {
-  soci::session sql = Model::GetSession();
+  soci::session sql = ModelFactory::getSession("default");
   soci::statement st(sql);
   soci::row rows;
   std::vector<T> ret;
 
+	Model::Log(query);
   ((void) st.exchange(soci::use<Args>(args)), ...);
 
   st.alloc();
@@ -719,11 +683,12 @@ std::vector<T> Model::Instance<T>::Select(std::string query, Args... args) {
 template <class T>
 template <typename... Args> 
 unsigned long Model::Instance<T>::Count(std::string query, Args... args){
-  soci::session sql = Model::GetSession();
+  soci::session sql = ModelFactory::getSession("default");
   long count;
 
   soci::statement st(sql);
 
+	Model::Log(query);
   ((void) st.exchange(soci::use<Args>(args)), ...);
 
   st.exchange(soci::into(count));
@@ -756,30 +721,36 @@ long Model::Instance<T>::GetAffectedRows(soci::statement &statement, soci::sessi
 
 template <class T>
 void Model::Instance<T>::CreateTable(std::vector<std::pair<std::string,std::string>> columns) {
-  auto sql = Model::GetSession();
+  soci::session sql = ModelFactory::getSession("default");
 
   std::string joined_columns;
   for (const auto &column : columns)
     joined_columns.append(", "+column.first+" "+column.second);
 
+	std::string query;
   if (sql.get_backend_name() == "sqlite3") {
-    sql << fmt::format( 
+		query = fmt::format( 
       "create table if not exists {} ( {} integer primary key {} )", 
       T::Definition.table_name, T::Definition.pkey_column, joined_columns);
   } else if (sql.get_backend_name() == "mysql") { 
-    sql << fmt::format( 
+    query = fmt::format( 
       "create table if not exists {} ( {} integer NOT NULL AUTO_INCREMENT {}, PRIMARY KEY({}) )", 
       T::Definition.table_name, T::Definition.pkey_column, joined_columns, 
       T::Definition.pkey_column);
   } else 
     throw ModelException("Unrecognized backend. Unable to create table");
+
+	Model::Log(query);
+	sql << query;
 }
 
 template <class T>
 void Model::Instance<T>::DropTable() {
-  auto sql = Model::GetSession();
+  soci::session sql = ModelFactory::getSession("default");
 
   // NOTE: I don't think there's any way to error test this, other than to expect
   // for an error to throw from soci...
-  sql << fmt::format("drop table {}", T::Definition.table_name);
+	std::string query = fmt::format("drop table {}", T::Definition.table_name);
+  sql << query;
 }
+

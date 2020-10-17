@@ -5,7 +5,7 @@
 
 #include "prails.hpp"
 #include "server.hpp"
-#include "model_factory.hpp"
+#include "model.hpp"
 #include "controller_factory.hpp"
 
 using namespace std;
@@ -62,14 +62,16 @@ int prails::main(int argc, char *argv[]) {
   }
 
   ConfigParser config;
+  shared_ptr<spdlog::logger> logger;
 
   if (config_path.empty()) 
     run_mode = RunMode::Help;
   else {
-    spdlog::info("Using config={}", config_path);
-
     config = ConfigParser(config_path);
-    Model::Initialize(config);
+    logger = spdlog::get("server");
+    logger->info("Using config={}", config_path);
+
+    ModelFactory::Dsn("default", config.dsn(), config.threads());
     Controller::Initialize(config);
   }
 
@@ -90,7 +92,7 @@ int prails::main(int argc, char *argv[]) {
       return 1;
     }
     case RunMode::WebServer: {
-      spdlog::info("{} log started. Cores={} Threads={}", program_name,
+      logger->info("{} log started. Cores={} Threads={}", program_name,
         hardware_concurrency(), config.threads());
       Server server(config);
       server.start();
@@ -105,7 +107,7 @@ int prails::main(int argc, char *argv[]) {
       } else
         throw invalid_argument("Missing output parameter(s)");
 
-      spdlog::info("Outputting {} to {}.", url, 
+      logger->info("Outputting {} to {}.", url, 
         (output.empty()) ? "STDOUT" : output);
 
       Server server(config);
@@ -130,10 +132,10 @@ int prails::main(int argc, char *argv[]) {
       server.shutdown();
     } break;
     case RunMode::Migration: {
-      spdlog::info("{} migration.", program_name);
+      logger->info("{} migration.", program_name);
 
-      for (const auto &reg : ModelFactory::getRegistrations()) {
-        spdlog::info("Running migration for {}..", reg);
+      for (const auto &reg : ModelFactory::getModelNames()) {
+        logger->info("Running migration for {}..", reg);
         ModelFactory::migrate(reg);
       }
     } break; 

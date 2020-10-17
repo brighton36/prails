@@ -2,6 +2,11 @@
 #include "utilities.hpp"
 
 #include "yaml-cpp/yaml.h"
+#include "spdlog/async.h"
+
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/daily_file_sink.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 #include <filesystem>
 #include <regex>
@@ -18,6 +23,8 @@ ConfigParser::ConfigParser() {
   views_path_ = "views";
   config_path_ = "config";
   log_level_ = "info";
+
+  // TODO: Register a default server logger
 }
 
 ConfigParser::ConfigParser(string config_file_path) {
@@ -55,9 +62,29 @@ ConfigParser::ConfigParser(string config_file_path) {
 
   if (!path_is_readable(config_path()))
     throw invalid_argument("Unreadable or missing config_path.");
-  
-  spdlog::set_level(spdlog_level());
 }
+
+shared_ptr<spdlog::logger> ConfigParser::setup_logger() {
+	string logger_name = "server";
+	auto logger = spdlog::get(logger_name);
+	if (not logger) {
+		// TODO: Grab this from the config
+		std::vector<spdlog::sink_ptr> sinks;
+		sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+		sinks.push_back(std::make_shared<spdlog::sinks::daily_file_sink_mt>("logfile", 23, 59));
+
+		if (sinks.size() > 0) {
+			logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));
+			spdlog::register_logger(logger);
+		} else
+			logger = spdlog::stdout_color_mt(logger_name);
+	}
+
+	logger->set_level(spdlog_level());
+
+	return logger;
+}
+
 
 string ConfigParser::path() { return path_; }
 unsigned int ConfigParser::port() { return port_; }
@@ -71,13 +98,15 @@ string ConfigParser::dsn() { return dsn_; }
 string ConfigParser::cors_allow() { return cors_allow_; }
 
 spdlog::level::level_enum ConfigParser::spdlog_level() { 
-  if ("critical" == log_level()) return spdlog::level::critical;
-  else if ("err" == log_level()) return spdlog::level::err;
-  else if ("warn" == log_level()) return spdlog::level::warn;
-  else if ("info" == log_level()) return spdlog::level::info;
-  else if ("debug" == log_level()) return spdlog::level::debug;
-  else if ("trace" == log_level()) return spdlog::level::trace;
-  return spdlog::level::off;
+  using namespace spdlog;
+
+  if ("critical" == log_level()) return level::critical;
+  else if ("err" == log_level()) return level::err;
+  else if ("warn" == log_level()) return level::warn;
+  else if ("info" == log_level()) return level::info;
+  else if ("debug" == log_level()) return level::debug;
+  else if ("trace" == log_level()) return level::trace;
+  return level::off;
 }
 
 string ConfigParser::expand_path(string p) {
@@ -85,3 +114,4 @@ string ConfigParser::expand_path(string p) {
     (filesystem::path(p).is_relative()) ? string(base_path)+"/"+p : p
   ));
 }
+

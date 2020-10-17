@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+
 #include "spdlog/spdlog.h"
 
 class ConfigParser {
@@ -17,6 +18,8 @@ class ConfigParser {
     std::string cors_allow();
     std::string log_level();
     spdlog::level::level_enum spdlog_level();
+		std::shared_ptr<spdlog::logger> setup_logger();
+
   private:
     unsigned int port_;
     unsigned int threads_;

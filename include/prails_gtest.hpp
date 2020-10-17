@@ -7,7 +7,6 @@
 #include "httplib.h"
 
 #include "model.hpp"
-#include "model_factory.hpp"
 #include "controller_factory.hpp"
 
 #include "server.hpp"
@@ -39,13 +38,19 @@ class PrailsEnvironment : public ::testing::Environment {
 
       PrailsControllerTest::config = config.get();
 
+			auto logger = config->setup_logger();
+
+			spdlog::set_level(spdlog::level::level_enum::debug); // No effect for the library.
+
+			spdlog::register_logger(logger);
+
       //spdlog::set_level(spdlog::level::debug);
 
-      Model::Initialize(*config);
+      ModelFactory::Dsn("default", config->dsn(), config->threads());
 
       // NOTE: We may want to support setting up specific models to migrate in
       // the constructor...
-      for (const auto &reg : ModelFactory::getRegistrations())
+      for (const auto &reg : ModelFactory::getModelNames())
         ModelFactory::migrate(reg);
 
       server = std::make_unique<Server>(*config);

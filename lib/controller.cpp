@@ -7,6 +7,8 @@ using namespace prails::utilities;
 
 void Controller::Instance::route_action(string action, const Rest::Request& request, 
   Http::ResponseWriter response) {
+  auto logger = spdlog::get("server");
+
   try {
     Action action_fp = actions[action];
     if (actions.count(action) == 0)
@@ -21,17 +23,17 @@ void Controller::Instance::route_action(string action, const Rest::Request& requ
       #undef METHOD                                 
     };                                            
 
-    spdlog::debug("Routing: {} {} to {}#{} ({}) ", 
+    logger->debug("Routing: {} {} to {}#{} ({}) ", 
       httpMethods[static_cast<int>(request.method())], request.resource(), 
       controller_name, action, request.address().host() );
 
     action_fp(request).send(response);
 
   } catch(const RequestException &e) { 
-    spdlog::error("route_action request exception: {}", e.what());
+    logger->error("route_action request exception: {}", e.what());
     response.send(Http::Code::Not_Found, "TODO: 404", MIME(Text, Html));
   } catch(const exception& e) { 
-    spdlog::error("route_action general exception: {}", e.what());
+    logger->error("route_action general exception: {}", e.what());
     response.send(Http::Code::Internal_Server_Error, "TODO: 500", MIME(Text, Html));
   }
 }

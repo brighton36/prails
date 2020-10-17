@@ -51,21 +51,31 @@ link_directories( ${CMAKE_BINARY_DIR}/_deps/spdlog-build)
 # Compiler Options
 include(CheckCXXCompilerFlag)
 
+# Flags for all builds:
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra \
-  -Wno-missing-field-initializers -fPIC")
-# These optimizations cause Address Boundary segfaults in soci::to_base (during
-# Count queries?) on gcc-8. Newer gcc's are not affected. In any case, we disable 
-# them: 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-forwprop -fno-tree-phiprop \
-  -fno-tree-fre")
+  -Wno-missing-field-initializers -fPIC \
+  -fstack-protector-all --param=ssp-buffer-size=4")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+if(CMAKE_BUILD_TYPE MATCHES "Release")
+  # These optimizations cause Address Boundary segfaults in soci::to_base (during
+  # Count queries?) on gcc-8. Newer gcc's are not affected. In any case, we disable 
+  # them, since Release is built -O3: 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-forwprop -fno-tree-phiprop \
+    -fno-tree-fre")
+
+	# This seems to fix the issues in model.hpp relating to spdlog crashing
+	# TODO: Maybe we should remove the inlines... I don't like this flag
+  #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-inline") 
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs \
-    -ftest-coverage -fstack-protector-all --param=ssp-buffer-size=4")
+  # TODO: Set this back to -O0
+  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -O0 -ftest-coverage")
+  link_libraries("-lgcov")
 endif()
 
 CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)

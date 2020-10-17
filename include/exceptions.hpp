@@ -6,7 +6,7 @@ class RequestException : public std::exception {
     std::string s;
     explicit RequestException(const std::string &ss) : s(ss) {}
     template<typename... Args> RequestException(const std::string &reason, Args... args) :
-      s(fmt::format(reason, args...)) { spdlog::error(s.c_str()); }
+      s(fmt::format(reason, args...)) { spdlog::get("server")->error(s.c_str()); }
     ~RequestException() throw () {}
     const char* what() const throw() { return s.c_str(); }
 };

@@ -10,6 +10,7 @@ class Server {
     void shutdown();
   private:
     size_t threads;
+    std::shared_ptr<spdlog::logger> logger;
     std::string path_static;
     std::string path_views;
     std::shared_ptr<Pistache::Http::Endpoint> http_endpoint;
