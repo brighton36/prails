@@ -565,7 +565,9 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
         using V = std::decay_t<decltype(fromType)>;
         using U = std::decay_t<decltype(toType)>;
 
-        if constexpr(std::is_same_v<V, std::tm> || std::is_same_v<U, std::tm>){
+				// cppcheck takes umbrage with this valid if statement. Disable that:
+				// cppcheck-suppress internalAstError
+        if constexpr (std::is_same_v<V, std::tm> || std::is_same_v<U, std::tm>) {
           throw ModelException("Time conversions are unsupported on {} column.", col);
         } else if constexpr (!std::is_same_v<V, std::string> && !std::is_same_v<U, std::string>)
           store_val = U(fromType);

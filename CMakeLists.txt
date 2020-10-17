@@ -66,14 +66,9 @@ if(CMAKE_BUILD_TYPE MATCHES "Release")
   # them, since Release is built -O3: 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-forwprop -fno-tree-phiprop \
     -fno-tree-fre")
-
-	# This seems to fix the issues in model.hpp relating to spdlog crashing
-	# TODO: Maybe we should remove the inlines... I don't like this flag
-  #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-inline") 
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
-  # TODO: Set this back to -O0
   set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -O0 -ftest-coverage")
   link_libraries("-lgcov")
 endif()
@@ -103,6 +98,7 @@ if (BUILD_TESTS)
       "--suppress=unusedFunction:*lib/utilities.cpp"
       "--suppress=*:*thirdparty/*"
       "--suppress=*:*_deps/*"
+			"--inline-suppr"
     )
   else()
     message("-- Cppcheck not found")
