@@ -72,8 +72,8 @@ regex regex_from_string(string re) {
 /// 'find' is substituted by 'replace'.
 /// - Inspired by James Kanze.
 /// - http://stackoverflow.com/questions/20406744/
-std::string replace_all(const std::string & haystack, const std::string & needle,
-  const std::string & replace) {
+string replace_all(const string & haystack, const string & needle,
+  const string & replace) {
   string result;
   size_t needle_len = needle.size();
   size_t pos,from=0;
@@ -86,11 +86,25 @@ std::string replace_all(const std::string & haystack, const std::string & needle
   return result;
 }
 
-std::string tm_to_json(std::tm tm_time) {
+string tm_to_json(tm tm_time) {
   char buffer [80];
   long int t = timegm(&tm_time);
-  strftime(buffer,80,"%Y-%m-%dT%H:%M:%S.0%z",std::gmtime(&t));
-  return std::string(buffer);
+  strftime(buffer,80,"%Y-%m-%dT%H:%M:%S.0%z",gmtime(&t));
+  return string(buffer);
 }
+
+pair<int,string> capture_system(const string &cmd) {
+	array<char, 128> buffer;
+	string output;
+	FILE* pipe = popen(cmd.c_str(), "r");
+
+	if (!pipe) throw runtime_error("popen() failed!");
+
+	while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+		output += buffer.data();
+
+	return make_pair<int, string>(WEXITSTATUS(pclose(pipe)), string(output));
+}
+
 
 }

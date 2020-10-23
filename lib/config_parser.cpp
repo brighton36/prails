@@ -7,6 +7,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/sinks/null_sink.h>
 
 #include <filesystem>
 #include <regex>
@@ -24,7 +25,7 @@ ConfigParser::ConfigParser() {
   config_path_ = "config";
   log_level_ = "info";
 
-  // TODO: Register a default server logger
+  spdlog_queue_size(8192);
 }
 
 ConfigParser::ConfigParser(string config_file_path) {
@@ -41,11 +42,15 @@ ConfigParser::ConfigParser(string config_file_path) {
     auto yaml = YAML::LoadFile(config_file_path);
     if (yaml["port"]) port_ = yaml["port"].as<unsigned int>();
     if (yaml["threads"]) threads_ = yaml["threads"].as<unsigned int>();
+    if (yaml["spdlog_queue_size"]) 
+      spdlog_queue_size(yaml["spdlog_queue_size"].as<unsigned int>());
     if (yaml["address"]) address_ = yaml["address"].as<string>();
     if (yaml["static_resource_path"]) 
       static_resource_path_ = yaml["static_resource_path"].as<string>();
     if (yaml["views_path"]) views_path_ = yaml["views_path"].as<string>();
     if (yaml["config_path"]) config_path_ = yaml["config_path"].as<string>();
+    if (yaml["log_directory"]) 
+      log_directory_ = yaml["log_directory"].as<string>();
     if (yaml["log_level"]) log_level_ = yaml["log_level"].as<string>();
     if (yaml["dsn"]) dsn_ = yaml["dsn"].as<string>();
     if (yaml["cors_allow"]) cors_allow_ = yaml["cors_allow"].as<string>();
@@ -64,20 +69,22 @@ ConfigParser::ConfigParser(string config_file_path) {
     throw invalid_argument("Unreadable or missing config_path.");
 }
 
-shared_ptr<spdlog::logger> ConfigParser::setup_logger() {
-	string logger_name = "server";
+shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name) {
 	auto logger = spdlog::get(logger_name);
 	if (not logger) {
-		// TODO: Grab this from the config
-		std::vector<spdlog::sink_ptr> sinks;
-		sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-		sinks.push_back(std::make_shared<spdlog::sinks::daily_file_sink_mt>("logfile", 23, 59));
+    if (sinks.size() == 0) {
+      if (log_directory().empty())
+        sinks.push_back(make_shared<spdlog::sinks::null_sink_mt>());
+      else
+        sinks.push_back(make_shared<spdlog::sinks::daily_file_sink_mt>(
+          join({log_directory(), "logfile"}, "/"), 23, 59));
 
-		if (sinks.size() > 0) {
-			logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));
-			spdlog::register_logger(logger);
-		} else
-			logger = spdlog::stdout_color_mt(logger_name);
+      // TODO: let's see where we're creating these logger_name's
+      // TODO: some_logger->set_pattern(">>>>>>>>> %H:%M:%S %z %v <<<<<<<<<");
+      //sinks.push_back(make_shared<spdlog::sinks::stdout_color_sink_mt>());
+    }
+    logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));
+    spdlog::register_logger(logger);
 	}
 
 	logger->set_level(spdlog_level());
@@ -89,13 +96,25 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger() {
 string ConfigParser::path() { return path_; }
 unsigned int ConfigParser::port() { return port_; }
 unsigned int ConfigParser::threads() { return threads_; }
+unsigned int ConfigParser::spdlog_queue_size() { return spdlog_queue_size_; }
 string ConfigParser::address() { return address_; }
 string ConfigParser::static_resource_path() { return expand_path(static_resource_path_); }
 string ConfigParser::views_path() { return expand_path(views_path_); }
 string ConfigParser::config_path() { return expand_path(config_path_); }
+string ConfigParser::log_directory() { 
+  return (log_directory_.empty()) ? string() : expand_path(log_directory_); 
+}
 string ConfigParser::log_level() { return log_level_; }
 string ConfigParser::dsn() { return dsn_; }
 string ConfigParser::cors_allow() { return cors_allow_; }
+
+void ConfigParser::threads(unsigned int t) { threads_ = t; }
+void ConfigParser::spdlog_queue_size(unsigned int q) { 
+  spdlog_queue_size_ = q;
+  spdlog::init_thread_pool(spdlog_queue_size_, 1);
+}
+
+void ConfigParser::log_level(const string &s) { log_level_ = s; }
 
 spdlog::level::level_enum ConfigParser::spdlog_level() { 
   using namespace spdlog;

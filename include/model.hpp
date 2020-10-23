@@ -68,7 +68,6 @@ namespace Model {
 	static void Log(const std::string &query) {
 		// TODO: we can do better than this. Let's maybe take an ostream...
     // TODO: This line seems to be returning a null pointer. Not sure if its instance or get, but I think it's get
-    // TODO: Why server2 ... let's change that...
     std::shared_ptr<spdlog::logger> serverlog = spdlog::details::registry::instance().get("server");
 		// TODO: Check for a null pointer?
     serverlog->debug("DB Query: {}", std::string(query));

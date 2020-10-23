@@ -19,6 +19,8 @@ TEST(config_parser, test_server_config) {
     string(PROJECT_SOURCE_DIR)+"/tests/views");
   EXPECT_EQ(config.config_path(), 
     string(PROJECT_SOURCE_DIR)+"/tests/config");
+  EXPECT_EQ(config.log_directory(), 
+    string(PROJECT_SOURCE_DIR)+"/build/log");
   EXPECT_EQ(config.log_level(), "off");
   EXPECT_EQ(config.spdlog_level(), spdlog::level::off);
   EXPECT_EQ(config.dsn(), "sqlite3://:memory:");

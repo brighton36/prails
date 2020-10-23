@@ -8,3 +8,4 @@ dsn: "sqlite3://:memory:"
 #dsn: "mysql://db=vuecrud_test host=127.0.0.1 user=vuecrud_database password='database-password-here'"
 #dsn: "mysql://db=vuecrud_database host=127.0.0.1 user=vuecrud_database password='database-password-here'"
 log_level: off
+log_directory: "../../build/log"

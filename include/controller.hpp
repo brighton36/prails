@@ -164,7 +164,8 @@ namespace Controller {
       std::string controller_name, views_path;
 
       explicit Instance(const std::string &controller_name, const std::string &views_path) : 
-        controller_name(controller_name), views_path(views_path) { }
+        controller_name(controller_name), views_path(views_path), 
+        logger(spdlog::get("server")) { }
 
       virtual void route_action(std::string, const Pistache::Rest::Request&, 
         Pistache::Http::ResponseWriter);
@@ -197,6 +198,7 @@ namespace Controller {
       std::map<std::string, Action> actions;
 
     protected:
+      std::shared_ptr<spdlog::logger> logger;
       std::string ensure_view_file(std::string, std::string);
       std::string ensure_view_file(std::string);
       std::string ensure_view_folder(std::string, std::string);

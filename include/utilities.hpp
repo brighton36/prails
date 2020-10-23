@@ -12,4 +12,5 @@ namespace prails::utilities {
   std::regex regex_from_string(std::string);
   std::string replace_all(const std::string &, const std::string &,const std::string &);
   std::string tm_to_json(std::tm tm_time);
+  std::pair<int,std::string> capture_system(const std::string &);
 }

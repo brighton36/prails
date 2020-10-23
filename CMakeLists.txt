@@ -86,6 +86,7 @@ if (BUILD_TESTS)
   find_program(CTEST_MEMORYCHECK_COMMAND NAMES valgrind)
   find_program(CTEST_COVERAGE_COMMAND NAMES gcov)
   find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
+  include_directories(${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include)
 
   if (CMAKE_CXX_CPPCHECK)
     message("-- Cppcheck found " ${CMAKE_CXX_CPPCHECK})
