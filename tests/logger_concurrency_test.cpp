@@ -1,12 +1,12 @@
 #include <unistd.h>
-#include <chrono>
+#include <filesystem>
 
 #include "gmock/gmock.h"
 
 #include "prails_gtest.hpp"
 #include "utilities.hpp"
 
-#include "spdlog/details/file_helper.h"
+#include <iostream>
 
 using namespace std;
 
@@ -122,8 +122,9 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
   prails_env->flush_logs();
 
   string log_file_path = prails_env->server_logfile_path();
+  cout << "TODO: " << log_file_path << endl;
 
-  EXPECT_TRUE(prails::utilities::path_is_readable(log_file_path));
+  EXPECT_TRUE(filesystem::is_regular_file(log_file_path));
 
 	string logline;
   unsigned int log_line_count = 0;
