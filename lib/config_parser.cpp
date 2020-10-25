@@ -84,7 +84,7 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
         sinks.push_back(make_shared<spdlog::sinks::daily_file_sink_mt>(
           join({log_directory(), "server.log"}, "/"), 23, 59));
 
-      // TODO: output to stdout if there's no log file specified
+      // TODO: output to stdout unless we're in server mode:
       //sinks.push_back(make_shared<spdlog::sinks::stdout_color_sink_mt>());
     }
     logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));

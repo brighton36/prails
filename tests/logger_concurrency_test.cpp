@@ -59,7 +59,7 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
 
     string server_logfile_path() {
       return fmt::format( "{}/log/{}_{:04d}-{:02d}-{:02d}.log", 
-        CMAKE_BINARY_DIR, "server", server_started.tm_year + 1900, 
+        PROJECT_BINARY_DIR, "server", server_started.tm_year + 1900, 
         server_started.tm_mon + 1, 
         server_started.tm_mday);
     }

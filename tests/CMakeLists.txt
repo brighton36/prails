@@ -9,7 +9,7 @@ function(declare_test test_name)
 endfunction()
 
 add_definitions(-DPROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
-add_definitions(-DCMAKE_BINARY_DIR="${CMAKE_BINARY_DIR}")
+add_definitions(-DPROJECT_BINARY_DIR="${PROJECT_BINARY_DIR}")
 add_definitions(-DTESTS_CONFIG_FILE="${PROJECT_SOURCE_DIR}/tests/config/test-server.yml")
 
 declare_test(utilities_test)
