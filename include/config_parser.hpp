@@ -23,7 +23,10 @@ class ConfigParser {
     std::string log_level();
     void log_level(const std::string &);
     spdlog::level::level_enum spdlog_level();
-		std::shared_ptr<spdlog::logger> setup_logger(const std::string &logger_name = "server");
+
+		std::shared_ptr<spdlog::logger> setup_logger(
+      const std::string &logger_name = "server");
+    void flush_logs();
 
   private:
     unsigned int port_;

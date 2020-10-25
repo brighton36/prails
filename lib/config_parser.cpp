@@ -69,6 +69,12 @@ ConfigParser::ConfigParser(string config_file_path) {
     throw invalid_argument("Unreadable or missing config_path.");
 }
 
+void ConfigParser::flush_logs() {
+  // TODO: Iterate the loggers? sinks?
+	auto logger = spdlog::get("server");
+	if (logger) logger->flush();
+}
+
 shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name) {
 	auto logger = spdlog::get(logger_name);
 	if (not logger) {
@@ -77,7 +83,7 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
         sinks.push_back(make_shared<spdlog::sinks::null_sink_mt>());
       else
         sinks.push_back(make_shared<spdlog::sinks::daily_file_sink_mt>(
-          join({log_directory(), "logfile"}, "/"), 23, 59));
+          join({log_directory(), "server.log"}, "/"), 23, 59));
 
       // TODO: let's see where we're creating these logger_name's
       // TODO: some_logger->set_pattern(">>>>>>>>> %H:%M:%S %z %v <<<<<<<<<");

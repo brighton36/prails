@@ -1,9 +1,12 @@
 #include <unistd.h>
+#include <chrono>
 
-#include <iostream> // TODO
-#include "prails_gtest.hpp"
 #include "gmock/gmock.h"
+
+#include "prails_gtest.hpp"
 #include "utilities.hpp"
+
+#include "spdlog/details/file_helper.h"
 
 using namespace std;
 
@@ -28,6 +31,9 @@ class LoggerConcurrencyController : public Controller::Instance {
 };
 
 class LoggerConcurrencyEnvironment : public PrailsEnvironment {
+  protected:
+    tm server_started;
+
   public:
     void SetUp() override {
       config = make_unique<ConfigParser>(string(TESTS_CONFIG_FILE));
@@ -40,9 +46,31 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
       // don't test concurrency
       config->spdlog_queue_size(1000000);
 
+      // I guess this test might act weird if you run it at 23:59 ...
+      server_started = Model::NowUTC();
+
       InitializeLogger();
       InitializeServer();
-      // tODO: Delete the log file on tear down
+    }
+
+    void flush_logs() {
+      config->flush_logs();
+    }
+
+    string server_logfile_path() {
+      return fmt::format( "{}/log/{}_{:04d}-{:02d}-{:02d}.log", 
+        CMAKE_BINARY_DIR, "server", server_started.tm_year + 1900, 
+        server_started.tm_mon + 1, 
+        server_started.tm_mday);
+    }
+
+    void TearDown() override {
+      server->shutdown();
+
+      string logfile = server_logfile_path();
+      if( remove(logfile.c_str()) != 0 )
+        throw runtime_error("Unable to remove logfile at end of test: "+logfile);
+
     }
 };
 
@@ -57,6 +85,9 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
   const string abPath = "/usr/bin/ab";
   const unsigned int abThreads = 8;
   const unsigned int abRequests = 500000; // TODO: we can probably lower this
+  const string logline_matches = "^\\[[ -:\\.\\d]+] \\[server] \\[(debug|info)] "
+    "(Requested /log-a-visit|Routing: GET /log-a-visit to "
+    "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\) )";
 
   // Make sure ab exists and is executable:
   ASSERT_FALSE(access(abPath.c_str(), X_OK));
@@ -84,20 +115,23 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
 	EXPECT_EQ(concurrency_level, to_string(abThreads));
 	EXPECT_EQ(failed_requests, "0");
 
-  // TODO: Flush the log
-  // my_logger->flush();
-  //
-	// TODO: Ensure the file exists...
-  // TODO: Count the number of lines
-  ifstream logfile("log/logfile_2020-10-23");
-	string line;
-	while (getline(logfile, line)) {
-    string line_matches = "^\\[[ -:\\.\\d]+] \\[server] \\[(debug|info)] "
-      "(Requested /log-a-visit|Routing: GET /log-a-visit to "
-      "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\) )";
-    if (!regex_match(line, regex(line_matches, regex::extended)))
-      cout << line << endl;
-    EXPECT_THAT(line, MatchesRegex(line_matches));
+  prails_env->flush_logs();
+
+  string log_file_path = prails_env->server_logfile_path();
+
+  EXPECT_TRUE(prails::utilities::path_is_readable(log_file_path));
+
+	string logline;
+  unsigned int log_line_count = 0;
+  ifstream logfile(log_file_path);
+
+	while (getline(logfile, logline)) {
+    // TODO: nix I guess
+    //if (!regex_match(logline, regex(logline_matches, regex::extended)))
+      //cout << logline << endl;
+    log_line_count += 1;
+    EXPECT_THAT(logline, MatchesRegex(logline_matches));
 	}
-  
+
+	EXPECT_EQ(abRequests*2, log_line_count);
 }
