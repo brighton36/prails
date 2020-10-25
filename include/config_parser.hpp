@@ -19,11 +19,12 @@ class ConfigParser {
     std::string config_path();
     std::string dsn();
     std::string cors_allow();
+    std::string html_error(unsigned int);
+
     std::string log_directory();
     std::string log_level();
     void log_level(const std::string &);
     spdlog::level::level_enum spdlog_level();
-
 		std::shared_ptr<spdlog::logger> setup_logger(
       const std::string &logger_name = "server");
     void flush_logs();

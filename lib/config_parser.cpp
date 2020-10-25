@@ -70,7 +70,6 @@ ConfigParser::ConfigParser(string config_file_path) {
 }
 
 void ConfigParser::flush_logs() {
-  // TODO: Iterate the loggers? sinks?
 	auto logger = spdlog::get("server");
 	if (logger) logger->flush();
 }
@@ -85,11 +84,11 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
         sinks.push_back(make_shared<spdlog::sinks::daily_file_sink_mt>(
           join({log_directory(), "server.log"}, "/"), 23, 59));
 
-      // TODO: let's see where we're creating these logger_name's
-      // TODO: some_logger->set_pattern(">>>>>>>>> %H:%M:%S %z %v <<<<<<<<<");
+      // TODO: output to stdout if there's no log file specified
       //sinks.push_back(make_shared<spdlog::sinks::stdout_color_sink_mt>());
     }
     logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));
+    logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] %v");
     spdlog::register_logger(logger);
 	}
 
@@ -140,3 +139,6 @@ string ConfigParser::expand_path(string p) {
   ));
 }
 
+string ConfigParser::html_error(unsigned int error) {
+  return fmt::format("TODO: {}", error);
+}

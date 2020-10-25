@@ -90,7 +90,7 @@ Controller::RestInstance<U,T>::read(const Pistache::Rest::Request& request) {
   auto model = T::Find(id);
 
   return (model) ? Controller::Response(Controller::ModelToJson(*model)) : 
-    Controller::Response(404, "text/html", "TODO: 404");
+    Controller::Response(404, "text/html", Controller::GetConfig().html_error(404));
 }
 
 template <class U, class T>
@@ -101,7 +101,7 @@ Controller::RestInstance<U,T>::del(const Pistache::Rest::Request& request) {
     return Controller::Response( nlohmann::json({{"status", 0}}) );
   }
   
-  return Controller::Response(404, "text/html", "TODO: 404");
+  return Controller::Response(404, "text/html", Controller::GetConfig().html_error(404));
 }
 
 template <class U, class T>
@@ -115,7 +115,7 @@ Controller::RestInstance<U,T>::create_or_update(const Pistache::Rest::Request& r
   T model;
   if (request.hasParam(":id"))  {
     auto optional_model = T::Find(request.param(":id").as<int>());
-    if (!optional_model) return Controller::Response(404, "text/html", "TODO: 404");
+    if (!optional_model) return Controller::Response(404, "text/html", Controller::GetConfig().html_error(404));
     model = *optional_model;
   } else 
     model = modelDefault(tm_time);

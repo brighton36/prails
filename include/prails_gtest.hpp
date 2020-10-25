@@ -37,7 +37,8 @@ class PrailsEnvironment : public ::testing::Environment {
     std::shared_ptr<ConfigParser> config;
 
     void InitializeLogger() {
-			spdlog::register_logger(config->setup_logger());
+      // TODO: Why do we need to register the logger here...:
+      spdlog::register_logger(config->setup_logger());
     }
 
     void InitializeDatabase(std::string dsn, unsigned int threads) {

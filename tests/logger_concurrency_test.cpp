@@ -68,9 +68,8 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
       server->shutdown();
 
       string logfile = server_logfile_path();
-      if( remove(logfile.c_str()) != 0 )
+      if (remove(logfile.c_str()) != 0)
         throw runtime_error("Unable to remove logfile at end of test: "+logfile);
-
     }
 };
 
@@ -80,14 +79,19 @@ REGISTER_CONTROLLER(LoggerConcurrencyController)
 INIT_PRAILS_TEST_ENVIRONMENT_WITH(LoggerConcurrencyEnvironment)
 
 TEST(LoggerConcurrency, ab_log_a_visit) {
+  // Note that there's roughly two phases to this test. The first phase 
+  // generates the log file, and should saturate all cpus. The second phase
+  // validates the log file, and should saturate a single cpu. If you're not 
+  // seeing the cpu process time consumed during phase one, the spd_queue_log
+  // size is probably not high enough.
   using ::testing::MatchesRegex;
 
   const string abPath = "/usr/bin/ab";
   const unsigned int abThreads = 8;
-  const unsigned int abRequests = 500000; // TODO: we can probably lower this
-  const string logline_matches = "^\\[[ -:\\.\\d]+] \\[server] \\[(debug|info)] "
+  const unsigned int abRequests = 50000;
+  const string logline_matches = "^\\[[ -:\\.\\d]+] \\[thread [0-9]+] \\[(debug|info)] "
     "(Requested /log-a-visit|Routing: GET /log-a-visit to "
-    "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\) )";
+    "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\) )$";
 
   // Make sure ab exists and is executable:
   ASSERT_FALSE(access(abPath.c_str(), X_OK));
@@ -126,12 +130,10 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
   ifstream logfile(log_file_path);
 
 	while (getline(logfile, logline)) {
-    // TODO: nix I guess
-    //if (!regex_match(logline, regex(logline_matches, regex::extended)))
-      //cout << logline << endl;
     log_line_count += 1;
     EXPECT_THAT(logline, MatchesRegex(logline_matches));
 	}
 
+  // Two log lines per request:
 	EXPECT_EQ(abRequests*2, log_line_count);
 }
