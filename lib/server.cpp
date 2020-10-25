@@ -55,8 +55,10 @@ void Server::shutdown() {
 void Server::setupRoutes() {
   using namespace Rest;
 
-  for (auto &[reg, controller] : controllers)
+  for (auto &[reg, controller] : controllers) {
+    logger->trace("Registering controller routes for \"{}\"", reg);
     ControllerFactory::setRoutes(reg, router, controller);
+  }
 
   Routes::NotFound(router, Routes::bind(&Server::doNotFound, this));
 }
