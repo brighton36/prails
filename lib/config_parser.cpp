@@ -87,7 +87,7 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
       // TODO: output to stdout unless we're in server mode:
       // Perhaps we need to detach in server mode
       // https://oneraynyday.github.io/dev/2017/11/19/C++-Threads-Basics/
-      //sinks.push_back(make_shared<spdlog::sinks::stdout_color_sink_mt>());
+      sinks.push_back(make_shared<spdlog::sinks::stdout_color_sink_mt>());
     }
     logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [thread %t] [%l] %v");
