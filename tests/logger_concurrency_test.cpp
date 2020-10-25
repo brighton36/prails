@@ -40,6 +40,7 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
       // We override these here,to make this test meaningful:
       config->threads(8);
       config->log_level("debug");
+      config->log_directory(fmt::format("{}/log", PROJECT_BINARY_DIR));
 
       // If we don't increase spdlog's queue size to something ridiculous, then
       // these tests block as soon as the default queue size is reached, and we

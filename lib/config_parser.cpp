@@ -85,6 +85,8 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
           join({log_directory(), "server.log"}, "/"), 23, 59));
 
       // TODO: output to stdout unless we're in server mode:
+      // Perhaps we need to detach in server mode
+      // https://oneraynyday.github.io/dev/2017/11/19/C++-Threads-Basics/
       //sinks.push_back(make_shared<spdlog::sinks::stdout_color_sink_mt>());
     }
     logger = make_shared<spdlog::logger>(logger_name, begin(sinks), end(sinks));
@@ -113,6 +115,7 @@ string ConfigParser::log_level() { return log_level_; }
 string ConfigParser::dsn() { return dsn_; }
 string ConfigParser::cors_allow() { return cors_allow_; }
 
+void ConfigParser::log_directory(const string &d) { log_directory_ = d; }
 void ConfigParser::threads(unsigned int t) { threads_ = t; }
 void ConfigParser::spdlog_queue_size(unsigned int q) { 
   spdlog_queue_size_ = q;

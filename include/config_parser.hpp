@@ -22,6 +22,7 @@ class ConfigParser {
     std::string html_error(unsigned int);
 
     std::string log_directory();
+    void log_directory(const std::string&);
     std::string log_level();
     void log_level(const std::string &);
     spdlog::level::level_enum spdlog_level();
