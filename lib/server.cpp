@@ -3,6 +3,8 @@
 
 #include "server.hpp"
 #include "controller_factory.hpp"
+#include "model.hpp"
+#include "model_factory.hpp"
 #include "utilities.hpp"
 
 using namespace std;
@@ -25,7 +27,12 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
   for (auto& mime_type : mime_type_json.items())
     extension_to_mime[string(mime_type.key())] = mime_type.value();
 
+  for (const auto &reg : ModelFactory::getModelNames()) {
+    logger->trace("Found model \"{}\"", reg);
+  }
+
   for (const auto &reg : ControllerFactory::getControllerNames()) {
+    logger->trace("Found controller \"{}\"", reg);
     controllers[reg] = shared_ptr<Controller::Instance>(
       ControllerFactory::createInstance(reg, this->path_views));
   }
@@ -55,10 +62,8 @@ void Server::shutdown() {
 void Server::setupRoutes() {
   using namespace Rest;
 
-  for (auto &[reg, controller] : controllers) {
-    logger->trace("Registering controller routes for \"{}\"", reg);
+  for (auto &[reg, controller] : controllers)
     ControllerFactory::setRoutes(reg, router, controller);
-  }
 
   Routes::NotFound(router, Routes::bind(&Server::doNotFound, this));
 }
