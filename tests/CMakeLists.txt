@@ -3,7 +3,13 @@ function(declare_test test_name)
   set(TEST_SOURCE ${test_name}.cpp)
 
   add_executable(${TEST_EXECUTABLE} ${TEST_SOURCE})
-  target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main prails)
+  target_link_libraries(${TEST_EXECUTABLE} gtest gtest_main)
+
+  target_link_libraries(${TEST_EXECUTABLE} -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 -lsqlite3 
+  -lsoci_mysql -lmysqlclient spdlog server pistache_static prails )
+  target_link_libraries(${TEST_EXECUTABLE} 
+  "-Wl,--whole-archive" controller config_parser "-Wl,--no-whole-archive")
+
   add_test(${test_name} ${TEST_EXECUTABLE})
   set_tests_properties(${test_name} PROPERTIES TIMEOUT 300) 
 endfunction()

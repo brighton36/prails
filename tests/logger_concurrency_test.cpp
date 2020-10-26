@@ -74,7 +74,6 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
     }
 };
 
-INIT_CONTROLLER_REGISTRY()
 REGISTER_CONTROLLER(LoggerConcurrencyController)
 
 INIT_PRAILS_TEST_ENVIRONMENT_WITH(LoggerConcurrencyEnvironment)

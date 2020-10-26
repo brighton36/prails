@@ -118,7 +118,7 @@ endif()
 # Project Components
 add_subdirectory(lib)
 
-add_library(prails SHARED lib/libprails.cpp)
+add_library(prails STATIC lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
 target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 -lsqlite3 
