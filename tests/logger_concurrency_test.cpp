@@ -6,7 +6,7 @@
 #include "prails_gtest.hpp"
 #include "utilities.hpp"
 
-#include <iostream>
+#include <iostream> // TODO
 
 using namespace std;
 
@@ -48,7 +48,8 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
       config->spdlog_queue_size(1000000);
 
       // I guess this test might act weird if you run it at 23:59 ...
-      server_started = Model::NowUTC();
+      time_t t_time = time(NULL);
+      server_started = *localtime(&t_time);
 
       InitializeLogger();
       InitializeServer();

@@ -164,8 +164,11 @@ namespace Controller {
       std::string controller_name, views_path;
 
       explicit Instance(const std::string &controller_name, const std::string &views_path) : 
-        controller_name(controller_name), views_path(views_path), 
-        logger(spdlog::get("server")) { }
+        controller_name(controller_name), views_path(views_path) { 
+        logger = spdlog::get("server");
+        if (logger == nullptr)
+          throw std::runtime_error("Unable to acquire controller logger");
+      }
 
       virtual void route_action(std::string, const Pistache::Rest::Request&, 
         Pistache::Http::ResponseWriter);
