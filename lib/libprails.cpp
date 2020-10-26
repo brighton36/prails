@@ -69,6 +69,7 @@ int prails::main(int argc, char *argv[]) {
   else {
     config = ConfigParser(config_path);
     logger = config.setup_logger();
+    spdlog::register_logger(logger);
     logger->info("Using config={}", config_path);
 
     ModelFactory::Dsn("default", config.dsn(), config.threads());
