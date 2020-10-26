@@ -6,8 +6,6 @@
 #include "prails_gtest.hpp"
 #include "utilities.hpp"
 
-#include <iostream> // TODO
-
 using namespace std;
 
 class LoggerConcurrencyController : public Controller::Instance { 
@@ -123,7 +121,6 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
   prails_env->flush_logs();
 
   string log_file_path = prails_env->server_logfile_path();
-  cout << "TODO: " << log_file_path << endl;
 
   EXPECT_TRUE(filesystem::is_regular_file(log_file_path));
 

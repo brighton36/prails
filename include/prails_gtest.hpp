@@ -37,8 +37,12 @@ class PrailsEnvironment : public ::testing::Environment {
     std::shared_ptr<ConfigParser> config;
 
     void InitializeLogger() {
-      // TODO: Why do we need to register the logger here...:
-      spdlog::register_logger(config->setup_logger());
+      // NOTE: Depending on how we're linked, it seems that we either share 
+      // the memory space with the library's registration, or, we have a local
+      // registration. As such, we register both in the setup_logger, as well
+      // as here
+      try { spdlog::register_logger(config->setup_logger()); }
+      catch (spdlog::spdlog_ex &e) { /* Do nothing if we already exist */ }
     }
 
     void InitializeDatabase(std::string dsn, unsigned int threads) {
