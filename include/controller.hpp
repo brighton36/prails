@@ -23,6 +23,7 @@ namespace Controller {
 
   void inline Initialize(ConfigParser &config) {
     // NOTE: I'm not crazy about this interface. But it works for now...
+    // TODO: Think of something better than GetConfig().
     GetConfig((ConfigParser *)&config);
   }
 

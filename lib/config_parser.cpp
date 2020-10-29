@@ -78,6 +78,7 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
 	if (not logger) {
     if (sinks.size() == 0) {
       if (log_directory().empty())
+        // TODO: Maybe do this if sinks.length() is still zero at the ed of this branch
         sinks.push_back(make_shared<spdlog::sinks::null_sink_mt>());
       else
         sinks.push_back(make_shared<spdlog::sinks::daily_file_sink_mt>(

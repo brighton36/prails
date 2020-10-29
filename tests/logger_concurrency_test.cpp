@@ -120,6 +120,7 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
 
   prails_env->flush_logs();
 
+  // Phase two: ensure the log matches the expectation:
   string log_file_path = prails_env->server_logfile_path();
 
   EXPECT_TRUE(filesystem::is_regular_file(log_file_path));

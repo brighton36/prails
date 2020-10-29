@@ -6,6 +6,7 @@
 #include "model.hpp"
 #include "model_factory.hpp"
 #include "utilities.hpp"
+#include "pistache_logger.hpp"
 
 using namespace std;
 using namespace Pistache;
@@ -39,7 +40,8 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
 
   auto opts = Http::Endpoint::options()
     .threads(threads)
-    .flags(Tcp::Options::ReuseAddr);
+    .flags(Tcp::Options::ReuseAddr)
+    .logger(make_shared<StringToSpdLogger>(logger));
 
   http_endpoint->init(opts);
   setupRoutes();
