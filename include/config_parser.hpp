@@ -29,6 +29,8 @@ class ConfigParser {
 		std::shared_ptr<spdlog::logger> setup_logger(
       const std::string &logger_name = "server");
     void flush_logs();
+    bool is_logging_to_console();
+    void is_logging_to_console(bool);
 
   private:
     unsigned int port_;
@@ -43,6 +45,7 @@ class ConfigParser {
     std::string dsn_;
     std::string cors_allow_;
     std::string log_directory_;
+    bool is_logging_to_console_ = false;
     std::string base_path;
     std::string expand_path(std::string);
 		std::vector<spdlog::sink_ptr> sinks;

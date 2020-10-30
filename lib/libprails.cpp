@@ -68,6 +68,8 @@ int prails::main(int argc, char *argv[]) {
     run_mode = RunMode::Help;
   else {
     config = ConfigParser(config_path);
+    config.is_logging_to_console(true);
+
     logger = config.setup_logger();
     spdlog::register_logger(logger);
     logger->info("Using config={}", config_path);

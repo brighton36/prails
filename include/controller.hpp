@@ -22,8 +22,9 @@ namespace Controller {
   }
 
   void inline Initialize(ConfigParser &config) {
-    // NOTE: I'm not crazy about this interface. But it works for now...
-    // TODO: Think of something better than GetConfig().
+    // TODO: I'm not crazy about this interface. But it works for now...
+    // Think of something better than GetConfig(). Maybe try a procedure out
+    // the way we did in model
     GetConfig((ConfigParser *)&config);
   }
 
