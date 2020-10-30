@@ -21,6 +21,7 @@ add_definitions(-DTESTS_CONFIG_FILE="${PROJECT_SOURCE_DIR}/tests/config/test-ser
 declare_test(utilities_test)
 declare_test(config_parser_test)
 declare_test(model_test)
+declare_test(model_logging_test)
 declare_test(post_body_test)
 declare_test(rest_controller_test)
 declare_test(logger_concurrency_test)

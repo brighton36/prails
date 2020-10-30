@@ -54,6 +54,7 @@ namespace Model {
   typedef std::map<std::optional<std::string>, std::vector<std::string>> RecordErrors;
   typedef std::pair<std::string,Record> Conditional;
   typedef std::function<std::optional<Conditional>(Model::Record &)> AddConditionals;
+  typedef std::optional<std::function<void (std::string)>> Logger;
 
   struct Validator {
     template <class T>
@@ -65,15 +66,17 @@ namespace Model {
   };
   typedef std::vector<Validator> Validations;
 
-	static void Log(const std::string &query) {
-		// TODO: we can do better than this. Let's maybe take an ostream...
-    // TODO: This line seems to be returning a null pointer. Not sure if its instance or get, but I think it's get
-    std::shared_ptr<spdlog::logger> serverlog = spdlog::get("server");
-    if (serverlog == nullptr)
-      throw std::runtime_error("Unable to acquire model logger");
+	static Logger inline SetLogger(Logger l = std::nullopt) {
+    static Logger logger = std::nullopt;
+    if (l.has_value()) logger = l.value();
 
-		// TODO: Check for a null pointer?
-    serverlog->debug("DB Query: {}", std::string(query));
+
+    return logger;
+  }
+
+	static void Log(const std::string &query) {
+    Logger logger = SetLogger();
+    if (logger) logger.value()(fmt::format("DB Query: {}", std::string(query)));
 	}
 
   std::tm inline NowUTC() {
