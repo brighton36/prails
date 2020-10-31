@@ -15,9 +15,9 @@ INIT_PRAILS_TEST_ENVIRONMENT()
 TEST_F(PrailsControllerTest, log_to_stdout) {
   std::string model_logger_output;
 
-  Model::SetLogger( [&model_logger_output](auto message) { 
+  ModelFactory::logger = [&model_logger_output](auto message) { 
     model_logger_output.append(message);
-  });
+  };
 
   TesterModel model({
     {"first_name", "John"},

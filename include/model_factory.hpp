@@ -4,7 +4,8 @@
 
 #define INIT_MODEL_REGISTRY() \
   std::shared_ptr<ModelFactory::map_type> ModelFactory::models = std::make_shared<ModelFactory::map_type>(); \
-  std::shared_ptr<ModelFactory::dsn_type> ModelFactory::dsns = std::make_shared<ModelFactory::dsn_type>();
+  std::shared_ptr<ModelFactory::dsn_type> ModelFactory::dsns = std::make_shared<ModelFactory::dsn_type>(); \
+  ModelFactory::Logger ModelFactory::logger = nullptr;
 
 #define REGISTER_MODEL(name) ModelRegister<name> name::reg(#name);
 #define REGISTER_DSN(name, value) ModelFactory::dsn(#name, #value);
@@ -22,6 +23,7 @@ struct ModelMapEntry{
 struct ModelFactory {
   typedef std::map<std::string, ModelMapEntry> map_type;
   typedef std::map<std::string, std::shared_ptr<soci::connection_pool>> dsn_type;
+  typedef std::function<void (std::string)> Logger;
 
   public:
 
@@ -80,9 +82,14 @@ struct ModelFactory {
       dsns->insert(std::make_pair(name, connection_pool));
     }
 
+    static void Log(const std::string &message) {
+      if (ModelFactory::logger != nullptr) ModelFactory::logger(message);
+    }
+
   private:
     static std::shared_ptr<map_type> models;
     static std::shared_ptr<dsn_type> dsns;
+    static Logger logger;
 };
 
 template<typename T>

@@ -54,7 +54,6 @@ namespace Model {
   typedef std::map<std::optional<std::string>, std::vector<std::string>> RecordErrors;
   typedef std::pair<std::string,Record> Conditional;
   typedef std::function<std::optional<Conditional>(Model::Record &)> AddConditionals;
-  typedef std::optional<std::function<void (std::string)>> Logger;
 
   struct Validator {
     template <class T>
@@ -66,18 +65,7 @@ namespace Model {
   };
   typedef std::vector<Validator> Validations;
 
-	static Logger inline SetLogger(Logger l = std::nullopt) {
-    static Logger logger = std::nullopt;
-    if (l.has_value()) logger = l.value();
-
-
-    return logger;
-  }
-
-	static void Log(const std::string &query) {
-    Logger logger = SetLogger();
-    if (logger) logger.value()(fmt::format("DB Query: {}", std::string(query)));
-	}
+	static void Log(const std::string &query) { ModelFactory::Log(query); }
 
   std::tm inline NowUTC() {
     time_t t_time = time(NULL);
