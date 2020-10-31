@@ -15,9 +15,9 @@ INIT_PRAILS_TEST_ENVIRONMENT()
 TEST_F(PrailsControllerTest, log_to_stdout) {
   std::string model_logger_output;
 
-  ModelFactory::logger = [&model_logger_output](auto message) { 
+  ModelFactory::setLogger( [&model_logger_output](auto message) { 
     model_logger_output.append(message);
-  };
+  });
 
   TesterModel model({
     {"first_name", "John"},
@@ -29,7 +29,7 @@ TEST_F(PrailsControllerTest, log_to_stdout) {
   
   ASSERT_TRUE(true);
   ASSERT_EQ(model_logger_output, 
-    "DB Query: insert into tester_models (email, first_name, last_name)"
+    "insert into tester_models (email, first_name, last_name)"
     " values(:email, :first_name, :last_name)"
     );
 }

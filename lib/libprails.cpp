@@ -74,11 +74,12 @@ int prails::main(int argc, char *argv[]) {
     spdlog::register_logger(logger);
     logger->info("Using config={}", config_path);
 
-    ModelFactory::logger = [](auto message) { 
+    ModelFactory::setLogger([](auto message) { 
+      // TODO: Use the pointer abov?
       std::shared_ptr<spdlog::logger> serverlog = spdlog::get("server");
       if (serverlog != nullptr)
         serverlog->debug("DB Query: {}", std::string(message));
-    };
+    });
 
     ModelFactory::Dsn("default", config.dsn(), config.threads());
     Controller::Initialize(config);

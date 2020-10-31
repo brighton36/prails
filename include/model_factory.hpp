@@ -2,6 +2,7 @@
 #include "model.hpp"
 #include "exceptions.hpp"
 
+// NOTE: This probably needs to be re-worked into a class or struct:
 #define INIT_MODEL_REGISTRY() \
   std::shared_ptr<ModelFactory::map_type> ModelFactory::models = std::make_shared<ModelFactory::map_type>(); \
   std::shared_ptr<ModelFactory::dsn_type> ModelFactory::dsns = std::make_shared<ModelFactory::dsn_type>(); \
@@ -85,6 +86,7 @@ struct ModelFactory {
     static void Log(const std::string &message) {
       if (ModelFactory::logger != nullptr) ModelFactory::logger(message);
     }
+    static void setLogger(Logger l) { ModelFactory::logger = l;}
 
   private:
     static std::shared_ptr<map_type> models;
