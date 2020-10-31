@@ -145,5 +145,23 @@ string ConfigParser::expand_path(string p) {
 }
 
 string ConfigParser::html_error(unsigned int error) {
-  return fmt::format("TODO: {}", error);
+  // NOTE: We'll want to support putting alternatives in the config file at some point
+  const string html_error = "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">"
+    "<html><head><title>{}</title></head><body><h1>{}</h1><p>{}</p><hr>"
+    "<address>{}</address></body></html>";
+
+  string addr = fmt::format("Server at {} Port {}", address(), port());
+
+  switch (error) {
+    case 404:
+      return fmt::format(html_error, "404 Not Found", "Not Found", 
+        "The requested URL /not_found was not found on this server.", addr);
+    case 500:
+      return fmt::format(html_error, "500 Internal Server Error", "Internal Server Error", 
+        "There was an error processing this request.", addr);
+  }
+
+  return fmt::format(html_error, fmt::format("{} Unhandled Error", error), 
+    "Unhandled Error", fmt::format("The request returned an error with code {}", 
+      error), addr);
 }
