@@ -71,15 +71,14 @@ int prails::main(int argc, char *argv[]) {
     config.is_logging_to_console(true);
 
     logger = config.setup_logger();
-    spdlog::register_logger(logger);
-    logger->info("Using config={}", config_path);
+    if (logger == nullptr) throw runtime_error("Unable to create logger");
 
-    ModelFactory::setLogger([](auto message) { 
-      // TODO: Use the pointer abov?
-      std::shared_ptr<spdlog::logger> serverlog = spdlog::get("server");
-      if (serverlog != nullptr)
-        serverlog->debug("DB Query: {}", std::string(message));
+    spdlog::register_logger(logger);
+    ModelFactory::setLogger([&logger](auto message) { 
+      logger->debug("DB Query: {}", std::string(message));
     });
+
+    logger->info("Using config={}", config_path);
 
     ModelFactory::Dsn("default", config.dsn(), config.threads());
     Controller::Initialize(config);
