@@ -26,6 +26,8 @@ class TaskControllerFixture : public PrailsControllerTest {
 
     static tm DefaultEpoch() {
       struct tm ret;
+      memset(&ret, 0, sizeof(tm));
+
       std::istringstream ss("2020-04-14 16:35:12");
       ss >> std::get_time(&ret, "%Y-%m-%d %H:%M:%S");
       return ret;

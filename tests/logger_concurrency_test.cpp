@@ -47,7 +47,7 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
 
       // I guess this test might act weird if you run it at 23:59 ...
       time_t t_time = time(NULL);
-      server_started = *localtime(&t_time);
+      memcpy(&server_started, localtime(&t_time), sizeof(tm));
 
       InitializeLogger();
       InitializeServer();

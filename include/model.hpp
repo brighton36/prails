@@ -5,6 +5,7 @@
 #include <optional>
 #include <functional>
 #include <experimental/type_traits>
+#include <iostream> // TODO : remove
 
 #include "spdlog/spdlog.h"
 
@@ -69,16 +70,21 @@ namespace Model {
 
   std::tm inline NowUTC() {
     time_t t_time = time(NULL);
-    return *gmtime(&t_time);
+
+    struct tm ret;
+    memcpy(&ret, gmtime(&t_time), sizeof(tm));
+
+    return ret;
   }
 
   class Definition {
     public:
       explicit Definition(const std::string &pkey_column, 
         const std::string &table_name, const ColumnTypes &column_types, 
-        const Validations &validations) : 
+        const Validations &validations, long int persist_at_gmt_offset = 0) : 
         pkey_column(pkey_column), table_name(table_name), 
-        column_types(column_types), validations(validations) {
+        column_types(column_types), validations(validations), 
+        persist_at_gmt_offset(persist_at_gmt_offset) {
 
         // Check that pkey exists, and is long:
         if ((column_types.find(pkey_column) == column_types.end()) || 
@@ -92,6 +98,7 @@ namespace Model {
       std::string table_name;
       ColumnTypes column_types;
       Validations validations;
+      long int persist_at_gmt_offset = 0;
   };
 
   template <class T>
@@ -453,7 +460,34 @@ Model::RecordErrors Model::Instance<T>::errors() {
 
 template <class T>
 std::optional<Model::RecordValue> Model::Instance<T>::recordGet(const std::string &col) {
-  return (record.count(col) > 0) ? record[col] : std::nullopt;
+  if ( (record.count(col) == 0) || (!record[col].has_value()) )
+    return std::nullopt;
+
+  // tm's are a special case, where the persisted value, may need to be adjusted
+  // to match the persist_at_gmt_offset:
+  if ((*record[col]).index() == COL_TYPE(std::tm)) {
+
+    std::tm adjusted_tm = std::get<std::tm>(*record[col]);
+
+    // tODO: remove
+    char buffer[80];
+    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
+    std::cout << "TODO: Retrieved " << col << "value: " << std::string(buffer) 
+      << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
+
+    long int zone_adjustment = definition->persist_at_gmt_offset;
+        
+    // TODO: What to do about is_dst
+    adjusted_tm.tm_sec += zone_adjustment;
+    adjusted_tm.tm_gmtoff = definition->persist_at_gmt_offset;
+
+    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
+    std::cout << "TODO: returned " << col << "value: " << std::string(buffer) 
+      << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
+    return std::make_optional<Model::RecordValue>(adjusted_tm);
+  }
+
+  return record[col];
 }
 
 template <class T>
@@ -538,10 +572,22 @@ void Model::Instance<T>::remove() {
 
 template <class T>
 void Model::Instance<T>::recordSet(const std::string &col, const std::optional<Model::RecordValue> &val) {
-  if ((definition->column_types.count(col) > 0) && (val != std::nullopt) && 
-    ((*val).index() != definition->column_types.at(col))) {
-      Model::RecordValue store_val;
+  // First we'll mark the record state:
+  isDirty_ = true;
+  isValid_ = std::nullopt;
 
+  // If they're setting the value to null, this path is easy:
+  if (val == std::nullopt) {
+    record[col] = std::nullopt;
+    return;
+  }
+
+  // Is there a type enforcement involved?
+  Model::RecordValue store_val = *val;
+
+  if (definition->column_types.count(col) > 0) {
+    // This path means there's a conversion of val, into the COL_TYPE:
+    if ((*val).index() != definition->column_types.at(col)) {
       switch (definition->column_types.at(col)) {
         case COL_TYPE(std::string): store_val = std::string(); break;
         case COL_TYPE(double): store_val = (double) 0; break;
@@ -572,12 +618,40 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
             "Probably a numeric to non-numeric type mismatch occurred", col);
       }, (*val), store_val);
 
-      record[col] = store_val;
-  } else 
-    record[col] = val;
+    } else if (definition->column_types.at(col) == COL_TYPE(std::tm)) {
+      // For the case of a tm, there may have to be adjustments to the time, 
+      // depending on what zone was provided.
 
-  isDirty_ = true;
-  isValid_ = std::nullopt;
+      std::tm adjusted_tm = std::get<std::tm>(*val);
+
+      // tODO: remove
+      char buffer[80];
+      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
+      std::cout << "TODO: Called " << col << "value: " << std::string(buffer) 
+        << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
+
+      long int zone_adjustment = adjusted_tm.tm_gmtoff + definition->persist_at_gmt_offset;
+        
+      // TODO: We may want/need to convert this into a time_t, if only so that
+      // the fields make any sense at all, and we don't end up with a seconds field greater than 60..
+      if (zone_adjustment != 0) {
+        time_t adjusted_time_t = mktime(&adjusted_tm); // TODO: We probably can't use mktime... maybe gmtime...
+        adjusted_time_t += zone_adjustment;
+        adjusted_tm = *gmtime(&adjusted_time_t);
+      }
+      adjusted_tm.tm_gmtoff = definition->persist_at_gmt_offset;
+
+      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
+      std::cout << "TODO: Stored " << col << "value: " << std::string(buffer) 
+        << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
+      //// TODO: What  is this for: tm_isdst = 0;
+      // See : https://github.com/SOCI/soci/issues/723 . Maybe we need a test on iterating is_dst...
+      store_val = adjusted_tm;
+    }
+
+  } 
+
+  record[col] = store_val;
 }
 
 template <class T>
@@ -601,7 +675,7 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
         case soci::dt_integer: val = r.get<int>(i); break;
         case soci::dt_unsigned_long_long: val = r.get<unsigned long>(i); break;
         case soci::dt_long_long: val = r.get<long>(i); break;
-        case soci::dt_date: val = r.get<tm>(i); break;
+        case soci::dt_date: val = r.get<std::tm>(i); break;
       }
       ret[key] = val;
     }

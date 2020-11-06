@@ -41,10 +41,10 @@ class TesterModelTest : public PrailsControllerTest {
     Model::Validations()
   };
   
-  std::string DatabaseDriver() {
+  string DatabaseDriver() {
     // Set our local tests up for the right database driver:
     smatch matches;
-    std::string dsn = PrailsControllerTest::config->dsn();
+    string dsn = PrailsControllerTest::config->dsn();
     if (regex_search(dsn, matches, regex("^([^\\:]+)")))
       return string(matches[1]);
 
@@ -90,13 +90,13 @@ TEST_F(TesterModelTest, time_column) {
   auto tm_to_string = [] (tm from){ 
     char buffer [80];
     long int t = timegm(&from);
-    strftime(buffer,80,"%c",std::gmtime(&t));
+    strftime(buffer,80,"%c",gmtime(&t));
     return string(buffer);
   };
 
-  std::string expected_time = "Tue Dec 10 14:04:27 2019";
+  string expected_time = "Tue Dec 10 14:04:27 2019";
 
-  std::tm store_tm;
+  tm store_tm;
   store_tm.tm_sec = 27;
   store_tm.tm_min = 4;
   store_tm.tm_hour = 14;
@@ -119,7 +119,7 @@ TEST_F(TesterModelTest, time_column) {
   // Test the recordGet on a non-ColumnTypes() declared column:
   store_model.recordSet("new_field", store_tm);
   EXPECT_EQ(expected_time, 
-    tm_to_string(std::get<tm>(*store_model.recordGet("new_field"))));
+    tm_to_string(get<tm>(*store_model.recordGet("new_field"))));
 
   EXPECT_NO_THROW(store_model.save());
 
@@ -141,9 +141,9 @@ TEST_F(TesterModelTest, time_column) {
   EXPECT_EQ(tester_models.size(), 1);
   EXPECT_EQ(expected_time, tm_to_string(*tester_models[0].tested_at()));
   EXPECT_EQ(expected_time, 
-    tm_to_string(std::get<tm>(*tester_models[0].recordGet("other_at"))));
+    tm_to_string(get<tm>(*tester_models[0].recordGet("other_at"))));
   EXPECT_EQ("2019-12-10 14:04:27", 
-    std::get<std::string>(*tester_models[0].recordGet("tested_at_string")));
+    get<string>(*tester_models[0].recordGet("tested_at_string")));
   
   // Let's just test the accessor a bit, on a change
   // I'm not sure what this tests. I guess, the tested_at, and an update.
@@ -219,7 +219,7 @@ TEST_F(TesterModelTest, insert_and_update) {
 
 TEST_F(TesterModelTest, test_missing_record) {
   auto record = TesterModel::Find(2147483647);
-  EXPECT_EQ(record, std::nullopt);
+  EXPECT_EQ(record, nullopt);
 }
 
 TEST_F(TesterModelTest, test_numeric_store_retrieve_limits) {
@@ -286,7 +286,7 @@ TEST_F(TesterModelTest, test_delete) {
 
   auto model_one_id = model_one.id().value();
   EXPECT_NO_THROW(model_one.remove());
-  EXPECT_EQ(TesterModel::Find(model_one_id), std::nullopt);
+  EXPECT_EQ(TesterModel::Find(model_one_id), nullopt);
 
   // Static Class Function:
   TesterModel model_two(john_smith_record);
@@ -294,7 +294,7 @@ TEST_F(TesterModelTest, test_delete) {
 
   auto model_two_id = model_two.id().value();
   EXPECT_NO_THROW(TesterModel::Remove(model_two_id));
-  EXPECT_EQ(TesterModel::Find(model_two_id), std::nullopt);
+  EXPECT_EQ(TesterModel::Find(model_two_id), nullopt);
 
   // Test exception on delete of unpersisted record
   TesterModel model_three(john_smith_record);
@@ -574,7 +574,7 @@ TEST_F(TesterModelTest, test_invalid_columns) {
 TEST_F(TesterModelTest, to_json_test) {
   TesterModel store_model(john_smith_record);
 
-  std::tm now = Model::NowUTC();
+  tm now = Model::NowUTC();
   store_model.updated_at(now);
 
   EXPECT_NO_THROW(store_model.save());
