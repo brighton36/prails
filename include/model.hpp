@@ -81,10 +81,10 @@ namespace Model {
     public:
       explicit Definition(const std::string &pkey_column, 
         const std::string &table_name, const ColumnTypes &column_types, 
-        const Validations &validations, long int persist_at_gmt_offset = 0) : 
+        const Validations &validations, bool is_persisting_in_utc = true) : 
         pkey_column(pkey_column), table_name(table_name), 
         column_types(column_types), validations(validations), 
-        persist_at_gmt_offset(persist_at_gmt_offset) {
+        is_persisting_in_utc(is_persisting_in_utc) {
 
         // Check that pkey exists, and is long:
         if ((column_types.find(pkey_column) == column_types.end()) || 
@@ -98,7 +98,7 @@ namespace Model {
       std::string table_name;
       ColumnTypes column_types;
       Validations validations;
-      long int persist_at_gmt_offset = 0;
+      bool is_persisting_in_utc = true;
   };
 
   template <class T>
@@ -464,11 +464,30 @@ std::optional<Model::RecordValue> Model::Instance<T>::recordGet(const std::strin
     return std::nullopt;
 
   // tm's are a special case, where the persisted value, may need to be adjusted
-  // to match the persist_at_gmt_offset:
+  // to either utc or local:
   if ((*record[col]).index() == COL_TYPE(std::tm)) {
+    std::tm provided_tm = std::get<std::tm>(*record[col]);
+    time_t provided_t = 0;
 
-    std::tm adjusted_tm = std::get<std::tm>(*record[col]);
+    // tODO: remove
+    char buffer[80];
+    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
+    std::cout << "recordGet: start " << col << "value: " << std::string(buffer) 
+      << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
 
+    if (definition->is_persisting_in_utc) {
+      provided_t = timegm(&provided_tm);
+      memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
+    } else {
+      provided_t = mktime(&provided_tm);
+      memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
+    }
+
+    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
+    std::cout << "recordGet: End " << col << "value: " << std::string(buffer) 
+      << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
+    /*
+    //std::tm adjusted_tm = std::get<std::tm>(*record[col]);
     // tODO: remove
     char buffer[80];
     strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
@@ -484,7 +503,8 @@ std::optional<Model::RecordValue> Model::Instance<T>::recordGet(const std::strin
     strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
     std::cout << "TODO: returned " << col << "value: " << std::string(buffer) 
       << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
-    return std::make_optional<Model::RecordValue>(adjusted_tm);
+    */
+    return std::make_optional<Model::RecordValue>(provided_tm);
   }
 
   return record[col];
@@ -622,31 +642,30 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
       // For the case of a tm, there may have to be adjustments to the time, 
       // depending on what zone was provided.
 
-      std::tm adjusted_tm = std::get<std::tm>(*val);
+      std::tm provided_tm = std::get<std::tm>(*val);
+      time_t provided_t = 0;
 
-      // tODO: remove
       char buffer[80];
-      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
-      std::cout << "TODO: Called " << col << "value: " << std::string(buffer) 
-        << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
+      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
+      std::cout << "recordSet: Start " << col << " value: " << std::string(buffer) 
+        << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
 
-      long int zone_adjustment = adjusted_tm.tm_gmtoff + definition->persist_at_gmt_offset;
-        
-      // TODO: We may want/need to convert this into a time_t, if only so that
-      // the fields make any sense at all, and we don't end up with a seconds field greater than 60..
-      if (zone_adjustment != 0) {
-        time_t adjusted_time_t = mktime(&adjusted_tm); // TODO: We probably can't use mktime... maybe gmtime...
-        adjusted_time_t += zone_adjustment;
-        adjusted_tm = *gmtime(&adjusted_time_t);
+      if (definition->is_persisting_in_utc) {
+        std::cout << "Here is_persisting_in_utc : " << std::endl;
+        provided_t = mktime(&provided_tm);
+        memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
+      } else {
+        std::cout << "Not is_persisting_in_utc : " << std::endl;
+        provided_t = mktime(&provided_tm);
+        memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
       }
-      adjusted_tm.tm_gmtoff = definition->persist_at_gmt_offset;
 
-      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
-      std::cout << "TODO: Stored " << col << "value: " << std::string(buffer) 
-        << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
-      //// TODO: What  is this for: tm_isdst = 0;
-      // See : https://github.com/SOCI/soci/issues/723 . Maybe we need a test on iterating is_dst...
-      store_val = adjusted_tm;
+      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
+      std::cout << "recordSet: End " << col << " value: " << std::string(buffer) 
+        << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
+
+      // TODO: memcpy here., though, we may not even have to...  
+      store_val = provided_tm;
     }
 
   } 
