@@ -5,7 +5,6 @@
 #include <optional>
 #include <functional>
 #include <experimental/type_traits>
-#include <iostream> // TODO : remove
 
 #include "spdlog/spdlog.h"
 
@@ -467,43 +466,18 @@ std::optional<Model::RecordValue> Model::Instance<T>::recordGet(const std::strin
   // to either utc or local:
   if ((*record[col]).index() == COL_TYPE(std::tm)) {
     std::tm provided_tm = std::get<std::tm>(*record[col]);
+
     time_t provided_t = 0;
 
-    // tODO: remove
-    char buffer[80];
-    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
-    std::cout << "recordGet: start " << col << "value: " << std::string(buffer) 
-      << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
-
     if (definition->is_persisting_in_utc) {
-      provided_t = timegm(&provided_tm);
-      memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
+      // TODO: we need any of this
+      //provided_t = timegm(&provided_tm);
+      //memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
     } else {
-      provided_t = mktime(&provided_tm);
+      provided_t = timelocal(&provided_tm);
       memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
     }
 
-    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
-    std::cout << "recordGet: End " << col << "value: " << std::string(buffer) 
-      << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
-    /*
-    //std::tm adjusted_tm = std::get<std::tm>(*record[col]);
-    // tODO: remove
-    char buffer[80];
-    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
-    std::cout << "TODO: Retrieved " << col << "value: " << std::string(buffer) 
-      << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
-
-    long int zone_adjustment = definition->persist_at_gmt_offset;
-        
-    // TODO: What to do about is_dst
-    adjusted_tm.tm_sec += zone_adjustment;
-    adjusted_tm.tm_gmtoff = definition->persist_at_gmt_offset;
-
-    strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&adjusted_tm);
-    std::cout << "TODO: returned " << col << "value: " << std::string(buffer) 
-      << " gmtoff: " << adjusted_tm.tm_gmtoff << std::endl;
-    */
     return std::make_optional<Model::RecordValue>(provided_tm);
   }
 
@@ -640,29 +614,28 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
 
     } else if (definition->column_types.at(col) == COL_TYPE(std::tm)) {
       // For the case of a tm, there may have to be adjustments to the time, 
-      // depending on what zone was provided.
+      // depending on what tm_gmtoff was provided, and what we're storing.
 
       std::tm provided_tm = std::get<std::tm>(*val);
       time_t provided_t = 0;
 
-      char buffer[80];
-      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
-      std::cout << "recordSet: Start " << col << " value: " << std::string(buffer) 
-        << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
-
+      // NOTE: This may not actually be what people expect, if they pass us
+      // a tm that's neither local or utc time. 
       if (definition->is_persisting_in_utc) {
-        std::cout << "Here is_persisting_in_utc : " << std::endl;
-        provided_t = mktime(&provided_tm);
+        // If we were presented a non-utc time, interpret it as local:
+        if (provided_tm.tm_gmtoff != 0) {
+          // TODO: Something's not right here...
+          provided_t = timelocal(&provided_tm);
+        } else
+          provided_t = timegm(&provided_tm);
+        //if (provided_tm.tm_gmtoff != 0) // TODO: I think this isnt working
+          //provided_t += provided_tm.tm_gmtoff;
+
         memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
       } else {
-        std::cout << "Not is_persisting_in_utc : " << std::endl;
-        provided_t = mktime(&provided_tm);
+        provided_t = timelocal(&provided_tm);
         memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
       }
-
-      strftime(buffer,80,"%Y-%m-%d %H:%M:%S %z",&provided_tm);
-      std::cout << "recordSet: End " << col << " value: " << std::string(buffer) 
-        << " gmtoff: " << provided_tm.tm_gmtoff << std::endl;
 
       // TODO: memcpy here., though, we may not even have to...  
       store_val = provided_tm;
@@ -694,7 +667,16 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
         case soci::dt_integer: val = r.get<int>(i); break;
         case soci::dt_unsigned_long_long: val = r.get<unsigned long>(i); break;
         case soci::dt_long_long: val = r.get<long>(i); break;
-        case soci::dt_date: val = r.get<std::tm>(i); break;
+        case soci::dt_date:
+          // NOTE: Soci provides us local tm's. Here, we're going to strip all
+          // zone information, and return the tm with the provided datetime, 
+          // but with the zone set to UTC.
+          std::tm val_as_local = r.get<std::tm>(i);
+          time_t val_as_utc_t = timegm(&val_as_local);
+          std::tm val_as_utc;
+          memcpy(&val_as_utc, gmtime(&val_as_utc_t), sizeof(tm));
+          val = val_as_utc; 
+          break;
       }
       ret[key] = val;
     }
