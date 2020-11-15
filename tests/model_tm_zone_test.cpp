@@ -3,6 +3,8 @@
 #include "tester_models.hpp"
 #include "controller.hpp"
 
+#include <iostream> // TODO
+
 using namespace std;
 
 class TimeModelLocal : public Model::Instance<TimeModelLocal> { 
@@ -65,18 +67,26 @@ class ModelTmZoneTest : public PrailsControllerTest {
     }
 
     tm local_tm(string time_as_string) {
-      // TODO: Clean this up... and fix the dst issue
-      struct tm zoneless_tm;
-      struct tm local_tm;
-      memset(&zoneless_tm, 0, sizeof(tm));
-      memset(&local_tm, 0, sizeof(tm));
+      tm ret, zone_parts_tm;
 
-      strptime(time_as_string.c_str(), "%Y-%m-%d %H:%M:%S", &zoneless_tm);
-      time_t zoneless_t = mktime(&zoneless_tm);
+      memset(&ret, 0, sizeof(tm));
+      memset(&zone_parts_tm, 0, sizeof(tm));
 
-      memcpy(&local_tm, localtime(&zoneless_t), sizeof(tm));
+      // NOTE: strptime only sets the fields in the specifier string. That means no
+      // isdst,gmtoff, or zone fields are set, and this tm will look like a UTC time.
+      strptime(time_as_string.c_str(), "%Y-%m-%d %H:%M:%S", &ret);
 
-      return local_tm;
+      memcpy(&zone_parts_tm, &ret, sizeof(tm));
+
+      // NOTE: mktime seems to adjust the hour back one hour, on the provided
+      // tm (zone_parts). But, gives us the local zone fields we need:
+      time_t string_parts_t = mktime(&zone_parts_tm);
+
+      ret.tm_gmtoff = zone_parts_tm.tm_gmtoff;
+      ret.tm_isdst = zone_parts_tm.tm_isdst;
+      ret.tm_zone = zone_parts_tm.tm_zone;
+
+      return ret;
     }
 
     string tm_to_string_with_zone(tm *time_as_tm) {
@@ -107,6 +117,7 @@ TEST_F(ModelTmZoneTest, fixture_test_features) {
   EXPECT_EQ(string(local_time_dst.tm_zone), string("EDT"));
   EXPECT_EQ(local_time_dst.tm_gmtoff, -14400);
   EXPECT_EQ(local_time_dst.tm_isdst, 1);
+
 }
 
 TEST_F(ModelTmZoneTest, cpp_tm_features) { 
@@ -182,13 +193,28 @@ TEST_F(ModelTmZoneTest, cpp_tm_conversion) {
   tm epoch1_tm_adjusted;
   memcpy(&epoch1_tm_adjusted, gmtime(&epoch1_t), sizeof(tm));
 
+  EXPECT_EQ("2020-01-01 12:00:00 +0000", tm_to_string_with_zone(&epoch1_tm_adjusted));
+  EXPECT_EQ(epoch1_tm_adjusted.tm_zone, string("GMT"));
+  EXPECT_EQ(epoch1_tm_adjusted.tm_gmtoff, 0);
+  EXPECT_EQ(epoch1_tm_adjusted.tm_isdst, 0);
+
   // -800 tm to time_t to UTC tm:
   tm epoch2_tm = local_tm("2020-04-14 09:00:00");
   time_t epoch2_t = timelocal(&epoch2_tm);
   tm epoch2_tm_adjusted;
+
+  // NOTE: I don't think gmtime adjusts the zone fields...
   memcpy(&epoch2_tm_adjusted, gmtime(&epoch2_t), sizeof(tm));
 
-  EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&epoch2_tm_adjusted));
+  EXPECT_EQ("2020-04-14 09:00:00 -0700", tm_to_string_with_zone(&epoch2_tm));
+  EXPECT_EQ(string(epoch2_tm.tm_zone), string("PDT"));
+  EXPECT_EQ(epoch2_tm.tm_gmtoff, -25200);
+  EXPECT_EQ(epoch2_tm.tm_isdst, 1);
+
+  EXPECT_EQ("2020-04-14 16:00:00 +0000", tm_to_string_with_zone(&epoch2_tm_adjusted));
+  EXPECT_EQ(epoch2_tm_adjusted.tm_zone, string("GMT"));
+  EXPECT_EQ(epoch2_tm_adjusted.tm_gmtoff, 0);
+  EXPECT_EQ(epoch2_tm_adjusted.tm_isdst, 0);
 
   // local/pdt tm to time_t to local/pdt tm:
   tm epoch3_tm = local_tm("2020-11-12 01:00:00");
@@ -218,6 +244,9 @@ TEST_F(ModelTmZoneTest, cpp_tm_conversion) {
   memcpy(&epoch4_tm_adjusted, gmtime(&epoch4_t), sizeof(tm));
 
   EXPECT_EQ("2020-02-14 14:00:00 +0000", tm_to_string_with_zone(&epoch4_tm_adjusted));
+  EXPECT_EQ(epoch4_tm_adjusted.tm_zone, string("GMT"));
+  EXPECT_EQ(epoch4_tm_adjusted.tm_gmtoff, 0);
+  EXPECT_EQ(epoch4_tm_adjusted.tm_isdst, 0);
 }
 
 TEST_F(ModelTmZoneTest, lifecycle_with_utc) {
@@ -249,7 +278,7 @@ TEST_F(ModelTmZoneTest, lifecycle_with_utc) {
   // -800 tm to time_t to UTC tm via is_persisting_in_utc:
   TimeModel create_model2({{"tested_at", local_tm("2020-04-14 09:00:00")}});
   tm created_epoch2 = *create_model2.tested_at();
-  EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&created_epoch2));
+  EXPECT_EQ("2020-04-14 16:00:00 +0000", tm_to_string_with_zone(&created_epoch2));
 
   EXPECT_NO_THROW(create_model2.save());
 
@@ -262,8 +291,10 @@ TEST_F(ModelTmZoneTest, lifecycle_with_utc) {
   tm updated_epoch2 = *updated_model2.tested_at();
   string updated_epoch_as_string2 = get<string>(*updated_model2.recordGet("tested_at_string"));
 
-  EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&updated_epoch2));
-  EXPECT_EQ("2020-04-14 17:00:00", updated_epoch_as_string2);
+  EXPECT_EQ("2020-04-14 16:00:00 +0000", tm_to_string_with_zone(&updated_epoch2));
+  EXPECT_EQ("2020-04-14 16:00:00", updated_epoch_as_string2);
+
+  // TODO: Do a dst time
 }
 
 TEST_F(ModelTmZoneTest, lifecycle_with_local) {
@@ -288,6 +319,7 @@ TEST_F(ModelTmZoneTest, lifecycle_with_local) {
   TimeModelLocal updated_model = updated_models[0];
   tm updated_epoch = *updated_model.tested_at();
   // This is so that we can ensure how the value is stored in the db itself:
+  // TODO: can we put this get<tmlp> into the recordGet?
   string updated_epoch_as_string = get<string>(*updated_model.recordGet("tested_at_string"));
 
   EXPECT_EQ("2020-01-01 04:00:00 -0800", tm_to_string_with_zone(&updated_epoch));
@@ -313,4 +345,8 @@ TEST_F(ModelTmZoneTest, lifecycle_with_local) {
 
   EXPECT_EQ("2020-01-10 09:00:00 -0800", tm_to_string_with_zone(&updated_epoch2));
   EXPECT_EQ("2020-01-10 09:00:00", updated_epoch_as_string2);
+
+  // TODO: Do some is_dst times here and above
+  // TODO: Do a dst time
 }
+
