@@ -624,16 +624,17 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
       if (definition->is_persisting_in_utc) {
         // If we were presented a non-utc time, interpret it as local:
         if (provided_tm.tm_gmtoff != 0) {
-          // TODO: Something's not right here...
           provided_t = timelocal(&provided_tm);
         } else
           provided_t = timegm(&provided_tm);
-        //if (provided_tm.tm_gmtoff != 0) // TODO: I think this isnt working
-          //provided_t += provided_tm.tm_gmtoff;
 
         memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
       } else {
-        provided_t = timelocal(&provided_tm);
+        if (provided_tm.tm_gmtoff != 0) {
+          provided_t = timelocal(&provided_tm);
+        } else
+          provided_t = timegm(&provided_tm);
+
         memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
       }
 
@@ -671,11 +672,20 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
           // NOTE: Soci provides us local tm's. Here, we're going to strip all
           // zone information, and return the tm with the provided datetime, 
           // but with the zone set to UTC.
-          std::tm val_as_local = r.get<std::tm>(i);
-          time_t val_as_utc_t = timegm(&val_as_local);
-          std::tm val_as_utc;
-          memcpy(&val_as_utc, gmtime(&val_as_utc_t), sizeof(tm));
-          val = val_as_utc; 
+
+          // TODO: Dry this up...
+          std::tm tm_from_soci = r.get<std::tm>(i);
+          if (T::Definition.is_persisting_in_utc) {
+            time_t val_as_utc_t = timegm(&tm_from_soci);
+            std::tm val_as_utc;
+            memcpy(&val_as_utc, gmtime(&val_as_utc_t), sizeof(tm));
+            val = val_as_utc; 
+          } else {
+            time_t val_as_utc_t = mktime(&tm_from_soci);
+            std::tm val_as_local;
+            memcpy(&val_as_local, localtime(&val_as_utc_t), sizeof(tm));
+            val = val_as_local; 
+          }
           break;
       }
       ret[key] = val;

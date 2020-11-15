@@ -2,7 +2,6 @@
 
 #include "tester_models.hpp"
 #include "controller.hpp"
-#include <iostream> // TODO
 
 using namespace std;
 
@@ -13,19 +12,11 @@ class TimeModelLocal : public Model::Instance<TimeModelLocal> {
     MODEL_ACCESSOR(tested_at, std::tm)
 
     inline static const Model::Definition Definition {
-      "id",
-      "time_models_edt", 
-      Model::ColumnTypes( { 
-        {"id",        COL_TYPE(long)},
-        {"tested_at", COL_TYPE(std::tm)}
-      }),
-      Model::Validations(),
-      false // Persists time in local zone
-    };
+      "id", "time_models_local", Model::ColumnTypes( { {"id", COL_TYPE(long)}, 
+        {"tested_at", COL_TYPE(std::tm)} }), Model::Validations(),
+      false  }; // 'false' Persists time in local zone
 
-    static void Migrate() {
-      CreateTable({ {"tested_at", "datetime"} });
-    };
+    static void Migrate() { CreateTable({ {"tested_at", "datetime"} }); };
 
   private:
     static ModelRegister<TimeModelLocal> reg;
@@ -74,7 +65,7 @@ class ModelTmZoneTest : public PrailsControllerTest {
     }
 
     tm local_tm(string time_as_string) {
-      // TODO: Clean this up...
+      // TODO: Clean this up... and fix the dst issue
       struct tm zoneless_tm;
       struct tm local_tm;
       memset(&zoneless_tm, 0, sizeof(tm));
@@ -94,6 +85,29 @@ class ModelTmZoneTest : public PrailsControllerTest {
       return string(buffer);
     }
 };
+
+TEST_F(ModelTmZoneTest, fixture_test_features) { 
+  // Test that our fixture helpers actually work the way we expect
+
+  // November 5th, 2020. Not in dst.
+  tm utc_time = utc_tm("2020-02-01 12:00:00");
+  EXPECT_EQ(string("Sun Feb  1 12:00:00 2020\n"), string(asctime(&utc_time)));
+  EXPECT_TRUE(utc_time.tm_zone == NULL);
+  EXPECT_EQ(utc_time.tm_gmtoff, 0);
+  EXPECT_EQ(utc_time.tm_isdst, 0);
+  
+  tm local_time = local_tm("2020-02-01 12:00:00");
+  EXPECT_EQ(string("Sat Feb  1 12:00:00 2020\n"), string(asctime(&local_time)));
+  EXPECT_EQ(string(local_time.tm_zone), string("EST"));
+  EXPECT_EQ(local_time.tm_gmtoff, -18000);
+  EXPECT_EQ(local_time.tm_isdst, 0);
+
+  tm local_time_dst = local_tm("2020-05-01 12:00:00");
+  EXPECT_EQ(string("Fri May  1 12:00:00 2020\n"), string(asctime(&local_time_dst)));
+  EXPECT_EQ(string(local_time_dst.tm_zone), string("EDT"));
+  EXPECT_EQ(local_time_dst.tm_gmtoff, -14400);
+  EXPECT_EQ(local_time_dst.tm_isdst, 1);
+}
 
 TEST_F(ModelTmZoneTest, cpp_tm_features) { 
   // This is mostly just confirming my own knowledge of C++. But, 
@@ -137,7 +151,7 @@ TEST_F(ModelTmZoneTest, cpp_tm_features) {
   EXPECT_EQ(mktime(&edt_tm2), epoch2);
 
   // This is just extra credit. I'm trying to break the libraries here...
-  
+
   // timegm: Seems to ignore the tm_isdst and tm_gmtoff field:
   utc_tm1.tm_isdst = 1;
   utc_tm1.tm_gmtoff = 12*3600;
@@ -175,7 +189,7 @@ TEST_F(ModelTmZoneTest, cpp_tm_conversion) {
   memcpy(&epoch2_tm_adjusted, gmtime(&epoch2_t), sizeof(tm));
 
   EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&epoch2_tm_adjusted));
-  
+
   // local/pdt tm to time_t to local/pdt tm:
   tm epoch3_tm = local_tm("2020-11-12 01:00:00");
   time_t epoch3_t = mktime(&epoch3_tm);
@@ -192,71 +206,111 @@ TEST_F(ModelTmZoneTest, cpp_tm_conversion) {
 
   EXPECT_EQ("2020-11-13 14:24:30 -0800", tm_to_string_with_zone(&now_tm));
   EXPECT_EQ("2020-11-13 22:24:30 +0000", tm_to_string_with_zone(&now_tm_utc));
+
+  // local/est tm to time_t to utc tm:
+  setenv("TZ", "EST5EDT", 1);
+  tzset();
+
+  tm epoch4_tm = local_tm("2020-02-14 09:00:00");
+  EXPECT_EQ("2020-02-14 09:00:00 -0500", tm_to_string_with_zone(&epoch4_tm));
+  time_t epoch4_t = timelocal(&epoch4_tm);
+  tm epoch4_tm_adjusted;
+  memcpy(&epoch4_tm_adjusted, gmtime(&epoch4_t), sizeof(tm));
+
+  EXPECT_EQ("2020-02-14 14:00:00 +0000", tm_to_string_with_zone(&epoch4_tm_adjusted));
 }
 
 TEST_F(ModelTmZoneTest, lifecycle_with_utc) {
   setenv("TZ", "PST8PDT", 1);
   tzset();
-  
+
+  ////////////////////////////////////////////////
   // Time provided in UTC, with UTC gmt_offset
-  TimeModel create_model({{"tested_at", utc_tm("2020-01-01 12:00:00 +0000")}});
+  TimeModel create_model({{"tested_at", utc_tm("2020-01-01 12:00:00")}});
   tm created_epoch = *create_model.tested_at();
+  EXPECT_EQ("2020-01-01 12:00:00 +0000", tm_to_string_with_zone(&created_epoch));
+
   EXPECT_NO_THROW(create_model.save());
 
-  TimeModel updated_model = *TimeModel::Find(*create_model.id());
+  vector<TimeModel> updated_models = TimeModel::Select(
+      "select *, strftime('%Y-%m-%d %H:%M:%S',tested_at) as tested_at_string"
+      " from time_models where id = :id limit 1", *create_model.id() );
+  ASSERT_EQ(updated_models.size(), 1);
 
+  TimeModel updated_model = updated_models[0];
   tm updated_epoch = *updated_model.tested_at();
+  // This is so that we can ensure how the value is stored in the db itself:
+  string updated_epoch_as_string = get<string>(*updated_model.recordGet("tested_at_string"));
 
-  EXPECT_EQ("2020-01-01 12:00:00 +0000", tm_to_string_with_zone(&created_epoch));
   EXPECT_EQ("2020-01-01 12:00:00 +0000", tm_to_string_with_zone(&updated_epoch));
+  EXPECT_EQ("2020-01-01 12:00:00", updated_epoch_as_string);
 
+  ////////////////////////////////////////////////
   // -800 tm to time_t to UTC tm via is_persisting_in_utc:
-  std::tm test2_tm = local_tm("2020-04-14 09:00:00");
-
-  TimeModel create_model2({{"tested_at", test2_tm}});
+  TimeModel create_model2({{"tested_at", local_tm("2020-04-14 09:00:00")}});
   tm created_epoch2 = *create_model2.tested_at();
+  EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&created_epoch2));
+
   EXPECT_NO_THROW(create_model2.save());
 
-  TimeModel updated_model2 = *TimeModel::Find(*create_model2.id());
+  vector<TimeModel> updated_models2 = TimeModel::Select(
+      "select *, strftime('%Y-%m-%d %H:%M:%S',tested_at) as tested_at_string"
+      " from time_models where id = :id limit 1", *create_model2.id() );
+  EXPECT_EQ(updated_models2.size(), 1);
+
+  TimeModel updated_model2 = updated_models2[0];
   tm updated_epoch2 = *updated_model2.tested_at();
+  string updated_epoch_as_string2 = get<string>(*updated_model2.recordGet("tested_at_string"));
 
-  EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&created_epoch2));
   EXPECT_EQ("2020-04-14 17:00:00 +0000", tm_to_string_with_zone(&updated_epoch2));
-
-  // TODO: Test the case of a tm queried from the database, when there's no column
-  // so, I guess, an (tested_at+6 hours) as undefined_time_column_at
-  
-  // TODO: Test a select where we convert the date to string, and ensure its stored in teh correct zone
-
-  // TODO: store a EST , retrieve in pST
-  //setenv("TZ", "PST8PDT", 1);
-  //tzset();
+  EXPECT_EQ("2020-04-14 17:00:00", updated_epoch_as_string2);
 }
 
-/*
-TEST_F(ModelTmZoneTest, lifecycle_with_est) {
-  // Time provided in EDT, with EDT gmt_offset
-  struct tm create_epoch = string_with_zone_to_tm("2020-04-14 16:35:12", -5 * 3600);
+TEST_F(ModelTmZoneTest, lifecycle_with_local) {
+  // This is a near-repeat of the lifecycle_with_utc, albeit with 
+  // is_persisting_in_utc set to false
+  setenv("TZ", "PST8PDT", 1);
+  tzset();
 
-  //printf("create_epoch: %s %ld %d\n", create_epoch.tm_zone, create_epoch.tm_gmtoff, create_epoch.tm_isdst);
-  TimeModelLocal create_model({{"tested_at", create_epoch}});
+  ////////////////////////////////////////////////
+  // Time provided in UTC, retrieved at local, not is_persisting_in_utc:
+  TimeModelLocal create_model({{"tested_at", utc_tm("2020-01-01 12:00:00")}});
+  tm created_epoch = *create_model.tested_at();
+  EXPECT_EQ("2020-01-01 04:00:00 -0800", tm_to_string_with_zone(&created_epoch));
+
   EXPECT_NO_THROW(create_model.save());
 
-  auto updated_model = *TimeModelLocal::Find(*create_model.id());
-  auto updated_epoch = *updated_model.tested_at();
+  vector<TimeModelLocal> updated_models = TimeModelLocal::Select(
+      "select *, strftime('%Y-%m-%d %H:%M:%S',tested_at) as tested_at_string"
+      " from time_models_local where id = :id limit 1", *create_model.id() );
+  ASSERT_EQ(updated_models.size(), 1);
 
-  EXPECT_EQ(tm_to_string_with_zone(&updated_epoch), tm_to_string_with_zone(&create_epoch));
-  EXPECT_EQ(updated_epoch.tm_gmtoff, create_epoch.tm_gmtoff);
-  EXPECT_EQ(updated_epoch.tm_isdst, 0);
-  EXPECT_EQ(create_epoch.tm_isdst, 0);
+  TimeModelLocal updated_model = updated_models[0];
+  tm updated_epoch = *updated_model.tested_at();
+  // This is so that we can ensure how the value is stored in the db itself:
+  string updated_epoch_as_string = get<string>(*updated_model.recordGet("tested_at_string"));
 
-  // Eastern Zone, with DST in effect
+  EXPECT_EQ("2020-01-01 04:00:00 -0800", tm_to_string_with_zone(&updated_epoch));
+  EXPECT_EQ("2020-01-01 04:00:00", updated_epoch_as_string);
 
-  // TODO: Time provided in UTC, with EDT gmt_offset
+  ////////////////////////////////////////////////
+  // Time provided in local, retrieved at local, not is_persisting_in_utc::
+  // TODO: I think this fails when I set the date to an is_dst date (say may 5). Migth be an issue with local_tm
+  TimeModelLocal create_model2({{"tested_at", local_tm("2020-01-10 09:00:00")}});
+  tm created_epoch2 = *create_model2.tested_at();
+  EXPECT_EQ("2020-01-10 09:00:00 -0800", tm_to_string_with_zone(&created_epoch2));
 
-  // TODO: Time provided in PDT, with EDT persist_at_gmt_offset
+  EXPECT_NO_THROW(create_model2.save());
 
-  // TODO: Test the case of a tm queried from the database, when there's no column
-  // so, I guess, a (tested_at+6 hours) as undefined_time_column_at
+  vector<TimeModelLocal> updated_models2 = TimeModelLocal::Select(
+    "select *, strftime('%Y-%m-%d %H:%M:%S',tested_at) as tested_at_string"
+    " from time_models_local where id = :id limit 1", *create_model2.id() );
+  EXPECT_EQ(updated_models2.size(), 1);
+
+  TimeModelLocal updated_model2 = updated_models2[0];
+  tm updated_epoch2 = *updated_model2.tested_at();
+  string updated_epoch_as_string2 = get<string>(*updated_model2.recordGet("tested_at_string"));
+
+  EXPECT_EQ("2020-01-10 09:00:00 -0800", tm_to_string_with_zone(&updated_epoch2));
+  EXPECT_EQ("2020-01-10 09:00:00", updated_epoch_as_string2);
 }
-*/
