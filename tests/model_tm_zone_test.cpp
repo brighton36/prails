@@ -3,7 +3,6 @@
 #include "tester_models.hpp"
 #include "controller.hpp"
 
-
 using namespace std;
 
 class TimeModelLocal : public Model::Instance<TimeModelLocal> { 

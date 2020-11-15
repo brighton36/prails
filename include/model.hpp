@@ -467,14 +467,8 @@ std::optional<Model::RecordValue> Model::Instance<T>::recordGet(const std::strin
   if ((*record[col]).index() == COL_TYPE(std::tm)) {
     std::tm provided_tm = std::get<std::tm>(*record[col]);
 
-    time_t provided_t = 0;
-
-    if (definition->is_persisting_in_utc) {
-      // TODO: we need any of this
-      //provided_t = timegm(&provided_tm);
-      //memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
-    } else {
-      provided_t = timelocal(&provided_tm);
+    if (!definition->is_persisting_in_utc) {
+      time_t provided_t = timelocal(&provided_tm);
       memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
     }
 
@@ -615,31 +609,20 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
     } else if (definition->column_types.at(col) == COL_TYPE(std::tm)) {
       // For the case of a tm, there may have to be adjustments to the time, 
       // depending on what tm_gmtoff was provided, and what we're storing.
-
-      std::tm provided_tm = std::get<std::tm>(*val);
-      time_t provided_t = 0;
-
       // NOTE: This may not actually be what people expect, if they pass us
-      // a tm that's neither local or utc time. 
-      if (definition->is_persisting_in_utc) {
-        // If we were presented a non-utc time, interpret it as local:
-        if (provided_tm.tm_gmtoff != 0) {
-          provided_t = timelocal(&provided_tm);
-        } else
-          provided_t = timegm(&provided_tm);
+      // a tm that's neither a local zone, or a utc zone. 
 
-        memcpy(&provided_tm, gmtime(&provided_t), sizeof(tm));
-      } else {
-        if (provided_tm.tm_gmtoff != 0) {
-          provided_t = timelocal(&provided_tm);
-        } else
-          provided_t = timegm(&provided_tm);
+      std::tm store_val_tm = std::get<std::tm>(*val);
 
-        memcpy(&provided_tm, localtime(&provided_t), sizeof(tm));
-      }
+      // If we were presented a non-utc time, interpret it as local:
+      time_t provided_t = (store_val_tm.tm_gmtoff != 0) ? 
+        timelocal(&store_val_tm) : timegm(&store_val_tm);
 
-      // TODO: memcpy here., though, we may not even have to...  
-      store_val = provided_tm;
+      memcpy(&store_val_tm, 
+        (definition->is_persisting_in_utc) ? gmtime(&provided_t) : localtime(&provided_t), 
+        sizeof(tm));
+
+      store_val = store_val_tm;
     }
 
   } 
@@ -673,19 +656,17 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
           // zone information, and return the tm with the provided datetime, 
           // but with the zone set to UTC.
 
-          // TODO: Dry this up...
           std::tm tm_from_soci = r.get<std::tm>(i);
+          time_t t_from_soci;
+          std::tm ret;
           if (T::Definition.is_persisting_in_utc) {
-            time_t val_as_utc_t = timegm(&tm_from_soci);
-            std::tm val_as_utc;
-            memcpy(&val_as_utc, gmtime(&val_as_utc_t), sizeof(tm));
-            val = val_as_utc; 
+            t_from_soci = timegm(&tm_from_soci);
+            memcpy(&ret, gmtime(&t_from_soci), sizeof(tm));
           } else {
-            time_t val_as_utc_t = mktime(&tm_from_soci);
-            std::tm val_as_local;
-            memcpy(&val_as_local, localtime(&val_as_utc_t), sizeof(tm));
-            val = val_as_local; 
+            t_from_soci = mktime(&tm_from_soci);
+            memcpy(&ret, localtime(&t_from_soci), sizeof(tm));
           }
+          val = ret; 
           break;
       }
       ret[key] = val;
