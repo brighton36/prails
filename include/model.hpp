@@ -71,6 +71,7 @@ namespace Model {
     time_t t_time = time(NULL);
 
     struct tm ret;
+    // TODO: Memset(0) this ret
     memcpy(&ret, gmtime(&t_time), sizeof(tm));
 
     return ret;

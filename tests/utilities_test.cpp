@@ -17,6 +17,13 @@ TEST(utilities_test, join) {
   ASSERT_TRUE( join({"John"}, ", ") == "John" );
 }
 
+TEST(utilities_test, split) {
+  ASSERT_EQ( split("John, Chris, Nancy", ", "), 
+    vector<string>({"John", "Chris", "Nancy"}));
+  ASSERT_EQ( split("John, Chris", ", "), vector<string>({"John", "Chris"}));
+  ASSERT_EQ( split("John", ", "), vector<string>({"John"}));
+}
+
 TEST(utilities_test, regex_from_string) {
   regex anything = regex_from_string("//");
 
