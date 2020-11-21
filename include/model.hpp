@@ -80,8 +80,8 @@ namespace Model {
   class Definition {
     public:
       explicit Definition(const std::string &pkey_column, 
-        const std::string &table_name, const ColumnTypes &column_types, 
-        const Validations &validations, bool is_persisting_in_utc = true) : 
+        const std::string &table_name, const ColumnTypes column_types, 
+        const Validations validations, bool is_persisting_in_utc = true) : 
         pkey_column(pkey_column), table_name(table_name), 
         column_types(column_types), validations(validations), 
         is_persisting_in_utc(is_persisting_in_utc) {
