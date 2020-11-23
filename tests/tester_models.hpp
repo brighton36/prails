@@ -54,7 +54,7 @@ class ValidationModel : public Model::Instance<ValidationModel> {
         Model::Validates::IsUnique("favorite_number"),
         Model::Validates::IsBoolean("is_company_admin"),
         Model::Validates::IsUnique("is_company_admin", 
-          [](Model::Record &record){ 
+          [](Model::Record record){ 
             return (record["company_id"] && record["company_id"].has_value()) ?
               std::make_optional(Model::Conditional( 
                 "company_id = :company_id and is_company_admin = :is_company_admin", {

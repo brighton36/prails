@@ -53,15 +53,47 @@ namespace Model {
   typedef std::optional<std::pair<std::optional<std::string>, std::string>> RecordError;
   typedef std::map<std::optional<std::string>, std::vector<std::string>> RecordErrors;
   typedef std::pair<std::string,Record> Conditional;
-  typedef std::function<std::optional<Conditional>(Model::Record &)> AddConditionals;
+  typedef std::function<std::optional<Conditional>(Model::Record)> AddConditionals;
 
-  struct Validator {
-    template <class T>
-    Validator(T t) : 
-      isValid([t = std::move(t)](Model::Record &r, const Model::Definition &d) { 
-        return t.isValid(r,d); }) {}
+  class ColumnValidator {
+    public:
+      explicit ColumnValidator(const std::string &column) : column(column) {};
 
-    std::function<RecordError(Model::Record &r, const Model::Definition &)> isValid;
+      RecordError isValid(Model::Record &, const Model::Definition &) const { 
+        return std::nullopt;
+      }
+
+    protected:
+      std::string column;
+      bool hasValue(Model::Record &r) const { 
+        return ((r.find(column) != r.end()) && r[column].has_value());
+      }
+      bool hasValue(Model::Record &r, std::size_t of_type) const {
+        if (r.find(column) == r.end()) return false;
+        std::optional<RecordValue> val = r[column];
+        return ((val) && (val.value().index() == of_type));
+      }
+      RecordError error(const std::string &message) const {
+        return RecordError({column, message}); 
+      }
+  };
+
+  class Validator {
+    public:
+      template <class T>
+      Validator(T t) {
+        // If we don't make a local copy of t, things get weird and crashy:
+        passed_obj = std::make_shared<T>(t);
+        isValid = std::bind(&T::isValid, static_cast<T*>(passed_obj.get()), 
+          std::placeholders::_1, std::placeholders::_2);
+      }
+
+      // TODO: I think we may not be deconconstructing validator_copy correctly. Test.
+      ~Validator() {}
+
+      std::function<RecordError(Model::Record &r, const Model::Definition &)> isValid;
+    private:
+      std::shared_ptr<ColumnValidator> passed_obj;
   };
   typedef std::vector<Validator> Validations;
 
@@ -71,7 +103,7 @@ namespace Model {
     time_t t_time = time(NULL);
 
     struct tm ret;
-    // TODO: Memset(0) this ret
+    memset(&ret, 0, sizeof(tm));
     memcpy(&ret, gmtime(&t_time), sizeof(tm));
 
     return ret;
@@ -141,30 +173,6 @@ namespace Model {
       static void CreateTable(std::vector<std::pair<std::string,std::string>>);
       static void DropTable();
   };
-
-  class ColumnValidator {
-    public:
-      explicit ColumnValidator(const std::string &column) : column(column) {};
-
-      RecordError isValid(Model::Record &, const Model::Definition &) const { 
-        return std::nullopt;
-      }
-
-    protected:
-      std::string column;
-      bool hasValue(Model::Record &r) const { 
-        return ((r.find(column) != r.end()) && r[column].has_value());
-      }
-      bool hasValue(Model::Record &r, std::size_t of_type) const {
-        if (r.find(column) == r.end()) return false;
-        std::optional<RecordValue> val = r[column];
-        return ((val) && (val.value().index() == of_type));
-      }
-      RecordError error(const std::string &message) const {
-        return RecordError({column, message}); 
-      }
-  };
-
 
   namespace Validates {
 
@@ -265,7 +273,7 @@ namespace Model {
 
         explicit IsUnique(const std::string &column) : ColumnValidator(column) {};
         explicit IsUnique(const std::string &column, 
-          const AddConditionals &add_conditionals) : 
+          const AddConditionals add_conditionals) : 
           ColumnValidator(column), add_conditionals(add_conditionals) {};
 
         RecordError isValid(Model::Record &record, 
@@ -279,12 +287,19 @@ namespace Model {
           // Put the query together:
           std::string query = "select count(*) from "+definition.table_name;
 
-          Record where;
-          where[column] = record[column];
-          query += " where "+column+" = :"+column;
+
+          // NOTE: For reasons I don't understand, it seems we need to allocate
+          // and pass this as a pointer. A reference to a local object segfaults...
+          // I think this has to do with how these validators are initialized
+          // in the objects... Weirdly, shared_ptr acted weird as well...
+          auto where = new Record();
+          if(record[column].has_value()) {
+            (*where)[column] = record[column];
+            query += " where "+column+" = :"+column;
+          }
 
           if (record[definition.pkey_column]) {
-            where[definition.pkey_column] = record[definition.pkey_column];
+            (*where)[definition.pkey_column] = record[definition.pkey_column];
             query += " and "+definition.pkey_column+" != :"+definition.pkey_column;
           } 
 
@@ -292,13 +307,13 @@ namespace Model {
             auto conditionals = add_conditionals(record);
             if (conditionals) {
               query += " and "+(*conditionals).first;
-              for (const auto &p: (*conditionals).second) where[p.first] = p.second;
+              for (const auto &p: (*conditionals).second) (*where)[p.first] = p.second;
             }
           }
 
 					Model::Log(query);
 
-          st.exchange(soci::use(&where));
+          st.exchange(soci::use(where));
 
           long found_records;
           st.exchange(soci::into(found_records));
@@ -308,6 +323,8 @@ namespace Model {
 
           if (!st.execute(true)) 
             throw ModelException("No data returned for count query");
+
+          delete where;
 
           return (found_records > 0) ? error(ErrorMessage) : std::nullopt;
         }
