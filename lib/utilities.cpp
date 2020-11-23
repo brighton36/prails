@@ -66,6 +66,23 @@ vector<string> split(const string &str, const string &delim) {
 	return ret;
 }
 
+vector<string> split(const string_view *str, const string &delim) {
+  vector<string> ret;
+
+  // TODO: Dry this up with templates...
+	size_t prev = 0, pos = 0;
+	do {
+    pos = str->find(delim, prev);
+    if (pos == string::npos) pos = str->length();
+    string token = string(str->substr(prev, pos-prev));
+    if (!token.empty()) ret.push_back(token);
+    prev = pos + delim.length();
+	} while (pos < str->length() && prev < str->length());
+
+	return ret;
+}
+
+
 bool has_any(vector<string> haystack, vector<string> needles) {
   return (find_if(haystack.begin(), haystack.end(), 
     [&needles] (const string &s) { 

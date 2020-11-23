@@ -18,10 +18,21 @@ TEST(utilities_test, join) {
 }
 
 TEST(utilities_test, split) {
+  // string:
   ASSERT_EQ( split("John, Chris, Nancy", ", "), 
     vector<string>({"John", "Chris", "Nancy"}));
   ASSERT_EQ( split("John, Chris", ", "), vector<string>({"John", "Chris"}));
   ASSERT_EQ( split("John", ", "), vector<string>({"John"}));
+
+  constexpr std::string_view cardinal_directions[] { "North,South,East,West" };
+  constexpr std::string_view updown[] { "North,South" };
+  constexpr std::string_view down[] { "South" };
+
+  // string_view:
+  ASSERT_EQ( split(cardinal_directions, ","), 
+    vector<string>({"North", "South", "East", "West"}));
+  ASSERT_EQ( split(updown, ","), vector<string>({"North", "South"}));
+  ASSERT_EQ( split(down, ","), vector<string>({"South"}));
 }
 
 TEST(utilities_test, regex_from_string) {
