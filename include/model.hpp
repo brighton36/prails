@@ -291,15 +291,15 @@ namespace Model {
           // NOTE: For reasons I don't understand, it seems we need to allocate
           // and pass this as a pointer. A reference to a local object segfaults...
           // I think this has to do with how these validators are initialized
-          // in the objects... Weirdly, shared_ptr acted weird as well...
+          // in the objects... Weirdly, make_shared gives us a bad_alloc ...
           auto where = new Record();
           if(record[column].has_value()) {
-            (*where)[column] = record[column];
+            where->insert({column, record[column]});
             query += " where "+column+" = :"+column;
           }
 
           if (record[definition.pkey_column]) {
-            (*where)[definition.pkey_column] = record[definition.pkey_column];
+            where->insert({definition.pkey_column, record[definition.pkey_column]});
             query += " and "+definition.pkey_column+" != :"+definition.pkey_column;
           } 
 
@@ -307,7 +307,8 @@ namespace Model {
             auto conditionals = add_conditionals(record);
             if (conditionals) {
               query += " and "+(*conditionals).first;
-              for (const auto &p: (*conditionals).second) (*where)[p.first] = p.second;
+              for (const auto &p: (*conditionals).second)
+                where->insert_or_assign(p.first, p.second);
             }
           }
 
@@ -321,10 +322,11 @@ namespace Model {
           st.prepare(query);
           st.define_and_bind();
 
-          if (!st.execute(true)) 
-            throw ModelException("No data returned for count query");
-
+          auto execute_ret = st.execute(true);
           delete where;
+
+          if (!execute_ret) 
+            throw ModelException("No data returned for count query");
 
           return (found_records > 0) ? error(ErrorMessage) : std::nullopt;
         }
