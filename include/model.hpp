@@ -88,7 +88,7 @@ namespace Model {
           std::placeholders::_1, std::placeholders::_2);
       }
 
-      // TODO: I think we may not be deconconstructing validator_copy correctly. Test.
+      // TODO: I think we may not be deconconstructing passed_ob correctly. Test.
       ~Validator() {}
 
       std::function<RecordError(Model::Record &r, const Model::Definition &)> isValid;
