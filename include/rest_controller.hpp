@@ -8,8 +8,17 @@ namespace Controller {
   template <class U, class T>
   class RestInstance : public Controller::Instance {
     public:
+      static constexpr std::string_view rest_prefix[] = { "" };
+      // TODO: can we get this to work? see example in: https://en.cppreference.com/w/cpp/string/basic_string_view
+      //  * If this works, redo faker
+      static constexpr std::string_view rest_actions[] = { "index", 
+        "read", "create", "update", "delete", "multiple_update", 
+        "multiple_delete" };
+
       RestInstance(const std::string &, const std::string &);
       static void Routes(Pistache::Rest::Router&, std::shared_ptr<Controller::Instance>);
+      static std::string prefix();
+      static std::vector<std::string> actions();
 
       Controller::Response options(const Pistache::Rest::Request&);
       Controller::Response index(const Pistache::Rest::Request&);
@@ -31,11 +40,10 @@ Controller::RestInstance<U,T>::RestInstance(
 
   // This is just a courtesy to some dev (probably myself) in the future. Mostly
   // no trailing slash.
-  if (!std::regex_match(U::route_prefix, std::regex("^\\/.+[^\\/]$") ))
+  if (!std::regex_match(U::prefix(), std::regex("^\\/.+[^\\/]$") ))
     throw RequestException("Error in rest class prefix. "
-      "Perhaps there's a trailing slash?", U::route_prefix);
+      "Perhaps there's a trailing slash?", U::prefix());
 }
-
 
 template <class U, class T>
 void Controller::RestInstance<U,T>::Routes(
@@ -44,22 +52,25 @@ void Controller::RestInstance<U,T>::Routes(
   using namespace Pistache::Rest::Routes;
   using namespace Controller;
 
-  Get(r, U::route_prefix, bind("index", &RestInstance<U,T>::index, controller));
-  Get(r, U::route_prefix+"/:id", bind("read", &RestInstance<U,T>::read, controller));
-  Post(r, U::route_prefix, bind("create", &RestInstance<U,T>::create_or_update, controller));
-  Put(r, U::route_prefix+"/:id", bind("update", &RestInstance<U,T>::create_or_update, controller));
-  Post(r, U::route_prefix+"/multiple-update", 
+  std::string rp = U::prefix();
+  std::vector<std::string> actions = U::actions();
+
+  Get(r, rp, bind("index", &RestInstance<U,T>::index, controller));
+  Get(r, rp+"/:id", bind("read", &RestInstance<U,T>::read, controller));
+  Post(r, rp, bind("create", &RestInstance<U,T>::create_or_update, controller));
+  Put(r, rp+"/:id", bind("update", &RestInstance<U,T>::create_or_update, controller));
+  Post(r, rp+"/multiple-update", 
     bind("multiple_update", &RestInstance<U,T>::multiple_update, controller));
-  Post(r, U::route_prefix+"/multiple-delete", 
+  Post(r, rp+"/multiple-delete", 
     bind("multiple_delete", &RestInstance<U,T>::multiple_delete, controller));
-  Delete(r, U::route_prefix+"/:id", bind("del", &RestInstance<U,T>::del, controller));
+  Delete(r, rp+"/:id", bind("del", &RestInstance<U,T>::del, controller));
   
   // TODO: Maybe we can just create a more clever bind above...
   //       Like: bind_response("options", CorsOkResponse(), controller)
   if ( !GetConfig().cors_allow().empty() ) {
-    Options(r, U::route_prefix+"/*",
+    Options(r, rp+"/*",
       bind("options_actions", &RestInstance<U,T>::options, controller));
-    Options(r, U::route_prefix,
+    Options(r, rp,
       bind("options_index", &RestInstance<U,T>::options, controller));
   }
 }
@@ -171,3 +182,18 @@ Controller::RestInstance<U,T>::multiple_delete(const Pistache::Rest::Request& re
   return Controller::Response( nlohmann::json({{"status", 0}}) );
 }
 
+template <class U, class T>
+std::string Controller::RestInstance<U,T>::prefix() { 
+  return {U::rest_prefix->data(), U::rest_prefix->size()};
+}
+
+template <class U, class T>
+std::vector<std::string> Controller::RestInstance<U,T>::actions() { 
+  std::vector<std::string> ret;
+
+  std::transform(std::begin(U::rest_actions), std::end(U::rest_actions), 
+    std::back_inserter(ret), 
+    [](std::string_view s) -> std::string {return {s.data(), s.size()};});
+
+  return ret;
+}

@@ -52,7 +52,7 @@ class Task : public Model::Instance<Task> {
 
 class TasksController : public Controller::RestInstance<TasksController, Task> { 
   public:
-    static const std::string route_prefix;
+    static constexpr std::string_view rest_prefix[] = { "/tasks" };
 
     using Controller::RestInstance<TasksController, Task>::RestInstance;
 

@@ -34,8 +34,6 @@ class TaskControllerFixture : public PrailsControllerTest {
     }
 };
 
-const std::string TasksController::route_prefix = "/tasks";
-
 INIT_MODEL_REGISTRY()
 INIT_CONTROLLER_REGISTRY()
 

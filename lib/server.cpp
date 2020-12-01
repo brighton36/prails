@@ -1,4 +1,3 @@
-
 #include <filesystem>
 
 #include "server.hpp"
@@ -7,6 +6,7 @@
 #include "model_factory.hpp"
 #include "utilities.hpp"
 #include "pistache_logger.hpp"
+#include "mime_types.hpp"
 
 using namespace std;
 using namespace Pistache;
@@ -22,15 +22,8 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
   this->path_views = config.views_path();
   this->threads = config.threads();
 
-  string mime_type_file = string(config.config_path())+"/mime_types.json"; 
-
-  nlohmann::json mime_type_json = nlohmann::json::parse(ifstream(mime_type_file));
-  for (auto& mime_type : mime_type_json.items())
-    extension_to_mime[string(mime_type.key())] = mime_type.value();
-
-  for (const auto &reg : ModelFactory::getModelNames()) {
+  for (const auto &reg : ModelFactory::getModelNames())
     logger->trace("Found model \"{}\"", reg);
-  }
 
   for (const auto &reg : ControllerFactory::getControllerNames()) {
     logger->trace("Found controller \"{}\"", reg);
@@ -99,25 +92,43 @@ void Server::doNotFound(const Rest::Request& request, Http::ResponseWriter respo
 
       smatch matches;
       Http::Mime::MediaType mime_type;
-      string extension;
+      string res_ext;
 
       if (regex_search(local_path, matches, regex("([^.]+)$")))
-        extension = matches[1];
+        res_ext = matches[1];
 
-      if ((extension.empty()) || (!extension_to_mime.count(extension))) {
-        logger->warn("Unable to find a content type for the resource: {}", resource);
-        mime_type = MIME(Text, Plain);
-      } else {
+      if (ExtToMime(res_ext).has_value()) {
         try {
           // Unfortunately, pistache has a very limited number of mime types that it
           // includes classes for. But, catch seems seems to work:
-          mime_type = Http::Mime::MediaType::fromString(extension_to_mime[extension]);
+          mime_type = Http::Mime::MediaType::fromString(*ExtToMime(res_ext));
         } catch(const Http::HttpError& e) {
           logger->warn("Serving */* for the resource: {}", resource);
           mime_type = MIME(Star, Star);
         }
+      } else {
+        logger->warn("Unable to find a content type for the resource: {}", resource);
+        mime_type = MIME(Text, Plain);
       }
       Http::serveFile(response, local_path, mime_type);
     }
   }
+}
+
+optional<string> Server::ExtToMime(const string &ext) {
+  string ext_lower = ext;
+  transform(ext_lower.begin(), ext_lower.end(), ext_lower.begin(), ::tolower); 
+
+  static map<string, string> _extension_to_mime;
+  if (_extension_to_mime.size() == 0) {
+    string key;
+    for (unsigned int i = 0; i < size(_default_mime_types); i++) {
+      string el = {_default_mime_types[i].data(), _default_mime_types[i].size()};
+      if (i % 2 == 0) key = el; 
+      else _extension_to_mime[key] = el;
+    }
+  }
+
+  return (_extension_to_mime.count(ext_lower)) ?
+    make_optional<string>(_extension_to_mime[ext_lower]) : nullopt;
 }
