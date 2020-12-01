@@ -120,14 +120,12 @@ optional<string> Server::ExtToMime(const string &ext) {
   transform(ext_lower.begin(), ext_lower.end(), ext_lower.begin(), ::tolower); 
 
   static map<string, string> _extension_to_mime;
-  if (_extension_to_mime.size() == 0) {
-    string key;
-    for (unsigned int i = 0; i < size(_default_mime_types); i++) {
-      string el = {_default_mime_types[i].data(), _default_mime_types[i].size()};
-      if (i % 2 == 0) key = el; 
-      else _extension_to_mime[key] = el;
+  if (_extension_to_mime.size() == 0)
+    for (unsigned int i = 1; i < size(_default_mime_types); i+=2) {
+      string key = {_default_mime_types[i-1].data(), _default_mime_types[i-1].size()};
+      string val = {_default_mime_types[i].data(), _default_mime_types[i].size()};
+      _extension_to_mime[key] = val;
     }
-  }
 
   return (_extension_to_mime.count(ext_lower)) ?
     make_optional<string>(_extension_to_mime[ext_lower]) : nullopt;
