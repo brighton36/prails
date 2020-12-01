@@ -8,10 +8,8 @@ namespace Controller {
   template <class U, class T>
   class RestInstance : public Controller::Instance {
     public:
-      static constexpr std::string_view rest_prefix[] = { "" };
-      // TODO: can we get this to work? see example in: https://en.cppreference.com/w/cpp/string/basic_string_view
-      //  * If this works, redo faker
-      static constexpr std::string_view rest_actions[] = { "index", 
+      static constexpr std::string_view rest_prefix = { "" };
+      static constexpr std::string_view rest_actions[]= { "index", 
         "read", "create", "update", "delete", "multiple_update", 
         "multiple_delete" };
 
@@ -55,6 +53,7 @@ void Controller::RestInstance<U,T>::Routes(
   std::string rp = U::prefix();
   std::vector<std::string> actions = U::actions();
 
+  // TODO: Implement the rest_actions here
   Get(r, rp, bind("index", &RestInstance<U,T>::index, controller));
   Get(r, rp+"/:id", bind("read", &RestInstance<U,T>::read, controller));
   Post(r, rp, bind("create", &RestInstance<U,T>::create_or_update, controller));
@@ -87,7 +86,8 @@ Controller::RestInstance<U,T>::index(const Pistache::Rest::Request&) {
   auto index = nlohmann::json::array();
 
   // TODO: Introduce a RestController::modelSelect(). pull the json requirement 
-  // out of the model class, into this
+  // out of the model class, into this. Maybe introduce a table_name named param in the way we use
+  // those in the faker
   for (auto &model: T::Select(fmt::format("select * from {}", T::Definition.table_name)))
     index.push_back(Controller::ModelToJson(model));
 
@@ -184,7 +184,7 @@ Controller::RestInstance<U,T>::multiple_delete(const Pistache::Rest::Request& re
 
 template <class U, class T>
 std::string Controller::RestInstance<U,T>::prefix() { 
-  return {U::rest_prefix->data(), U::rest_prefix->size()};
+  return {U::rest_prefix.data(), U::rest_prefix.size()};
 }
 
 template <class U, class T>

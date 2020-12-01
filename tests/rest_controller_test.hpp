@@ -50,13 +50,14 @@ class Task : public Model::Instance<Task> {
     static ModelRegister<Task> reg;
 };
 
+// This is a courtesy to the vuecrud demo. Keeps this DRY.
 #ifndef TASKS_REST_PREFIX
 #define TASKS_REST_PREFIX "/tasks"
 #endif
 
 class TasksController : public Controller::RestInstance<TasksController, Task> { 
   public:
-    static constexpr std::string_view rest_prefix[] = { TASKS_REST_PREFIX };
+    static constexpr std::string_view rest_prefix = { TASKS_REST_PREFIX };
 
     using Controller::RestInstance<TasksController, Task>::RestInstance;
 
