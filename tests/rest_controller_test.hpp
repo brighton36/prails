@@ -50,9 +50,13 @@ class Task : public Model::Instance<Task> {
     static ModelRegister<Task> reg;
 };
 
+#ifndef TASKS_REST_PREFIX
+#define TASKS_REST_PREFIX "/tasks"
+#endif
+
 class TasksController : public Controller::RestInstance<TasksController, Task> { 
   public:
-    static constexpr std::string_view rest_prefix[] = { "/tasks" };
+    static constexpr std::string_view rest_prefix[] = { TASKS_REST_PREFIX };
 
     using Controller::RestInstance<TasksController, Task>::RestInstance;
 
