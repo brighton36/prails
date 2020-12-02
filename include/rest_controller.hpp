@@ -26,8 +26,10 @@ namespace Controller {
       Controller::Response read(const Pistache::Rest::Request&);
       Controller::Response del(const Pistache::Rest::Request&);
     private:
+			// These must be overriden by inheriting classes, in order for the 
+	    // create/update actions to make any sense:
       virtual T modelDefault(std::tm) { return T(); };
-      virtual void modelUpdate(T &, Controller::PostBody &, std::tm) = 0;
+			virtual void modelUpdate(T &, Controller::PostBody &, std::tm) {}
   };
 }
 
@@ -197,3 +199,4 @@ std::vector<std::string> Controller::RestInstance<U,T>::actions() {
 
   return ret;
 }
+
