@@ -30,6 +30,10 @@ namespace Controller {
 	    // create/update actions to make any sense:
       virtual T modelDefault(std::tm) { return T(); };
 			virtual void modelUpdate(T &, Controller::PostBody &, std::tm) {}
+			virtual std::vector<T> modelSelect(Controller::PostBody &) {
+        return T::Select( fmt::format("select * from {table_name}", 
+          fmt::arg("table_name", T::Definition.table_name)));
+      }
   };
 }
 
@@ -55,16 +59,26 @@ void Controller::RestInstance<U,T>::Routes(
   std::string rp = U::prefix();
   std::vector<std::string> actions = U::actions();
 
-  // TODO: Implement the rest_actions here
-  Get(r, rp, bind("index", &RestInstance<U,T>::index, controller));
-  Get(r, rp+"/:id", bind("read", &RestInstance<U,T>::read, controller));
-  Post(r, rp, bind("create", &RestInstance<U,T>::create_or_update, controller));
-  Put(r, rp+"/:id", bind("update", &RestInstance<U,T>::create_or_update, controller));
-  Post(r, rp+"/multiple-update", 
-    bind("multiple_update", &RestInstance<U,T>::multiple_update, controller));
-  Post(r, rp+"/multiple-delete", 
-    bind("multiple_delete", &RestInstance<U,T>::multiple_delete, controller));
-  Delete(r, rp+"/:id", bind("del", &RestInstance<U,T>::del, controller));
+  auto offers_action = [&actions] (std::string name) -> bool {
+    return (std::find(actions.begin(), actions.end(), name) != actions.end());
+  };
+
+  if (offers_action("index"))
+    Get(r, rp, bind("index", &RestInstance<U,T>::index, controller));
+  if (offers_action("read"))
+    Get(r, rp+"/:id", bind("read", &RestInstance<U,T>::read, controller));
+  if (offers_action("create"))
+    Post(r, rp, bind("create", &RestInstance<U,T>::create_or_update, controller));
+  if (offers_action("update"))
+    Put(r, rp+"/:id", bind("update", &RestInstance<U,T>::create_or_update, controller));
+  if (offers_action("multiple_update"))
+    Post(r, rp+"/multiple-update", 
+      bind("multiple_update", &RestInstance<U,T>::multiple_update, controller));
+  if (offers_action("multiple_delete"))
+    Post(r, rp+"/multiple-delete", 
+      bind("multiple_delete", &RestInstance<U,T>::multiple_delete, controller));
+  if (offers_action("delete"))
+    Delete(r, rp+"/:id", bind("del", &RestInstance<U,T>::del, controller));
   
   // TODO: Maybe we can just create a more clever bind above...
   //       Like: bind_response("options", CorsOkResponse(), controller)
@@ -84,16 +98,13 @@ Controller::RestInstance<U,T>::options(const Pistache::Rest::Request&) {
 
 template <class U, class T>
 Controller::Response 
-Controller::RestInstance<U,T>::index(const Pistache::Rest::Request&) {
-  auto index = nlohmann::json::array();
+Controller::RestInstance<U,T>::index(const Pistache::Rest::Request &request) {
+  auto post = Controller::PostBody(request.body());
+  auto ret = nlohmann::json::array();
 
-  // TODO: Introduce a RestController::modelSelect(). pull the json requirement 
-  // out of the model class, into this. Maybe introduce a table_name named param in the way we use
-  // those in the faker
-  for (auto &model: T::Select(fmt::format("select * from {}", T::Definition.table_name)))
-    index.push_back(Controller::ModelToJson(model));
+  for (auto &m: modelSelect(post)) ret.push_back(Controller::ModelToJson(m));
 
-  return Controller::Response(index);
+  return Controller::Response(ret);
 }
 
 template <class U, class T>

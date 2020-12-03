@@ -247,7 +247,7 @@ namespace Model {
       private:
         unsigned int max_length;
       public:
-        const std::string ErrorMessage = "has too many characters. The maximum length is {}.";
+        const std::string ErrorMessage = "has too many characters. The maximum length is {max_length}.";
 
         explicit MaxLength(const std::string &column, unsigned int max_length) : 
           ColumnValidator(column), max_length(max_length) {};
@@ -257,7 +257,7 @@ namespace Model {
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
             (std::get<std::string>(*r[column]).length() > max_length) 
-          ) return error(fmt::format(ErrorMessage, max_length));
+          ) return error(fmt::format(ErrorMessage, fmt::arg("max_length", max_length)));
 
           return std::nullopt;
         }
@@ -513,8 +513,11 @@ void Model::Instance<T>::save() {
     for (auto &key : columns) 
       if (key != definition->pkey_column) set_pairs.push_back(key+" = :"+key);
 
-    soci::statement update = (sql.prepare << fmt::format("update {} set {} where id = :id", 
-      definition->table_name, prails::utilities::join(set_pairs, ", ") ), soci::use(this));
+    soci::statement update = (sql.prepare << fmt::format(
+      "update {table_name} set {update_pairs} where id = :id", 
+      fmt::arg("table_name", definition->table_name),
+      fmt::arg("update_pairs", prails::utilities::join(set_pairs, ", "))
+      ), soci::use(this));
     update.execute(true);
 
     // See the below note on last_insert_id. Seems like affected_rows is similarly
@@ -527,9 +530,11 @@ void Model::Instance<T>::save() {
     std::for_each(columns.begin(), columns.end(), [&values](auto &key) {
       values.push_back(":"+key); });
 
-    std::string query = fmt::format("insert into {} ({}) values({})", 
-			definition->table_name, 
-      prails::utilities::join(columns, ", "), prails::utilities::join(values, ", "));
+    std::string query = fmt::format(
+      "insert into {table_name} ({columns}) values({values})", 
+      fmt::arg("table_name", definition->table_name),
+      fmt::arg("columns", prails::utilities::join(columns, ", ")),
+      fmt::arg("values", prails::utilities::join(values, ", ")));
 
 		Model::Log(query);
 
@@ -700,7 +705,8 @@ template <class T>
 void Model::Instance<T>::Remove(std::string table_name, long id) {
 
   soci::session sql = ModelFactory::getSession("default");
-	std::string query = fmt::format("delete from {} where id = :id", table_name);
+	std::string query = fmt::format("delete from {table_name} where id = :id", 
+    fmt::arg("table_name", table_name));
 
 	Model::Log(query);
 
@@ -722,8 +728,11 @@ std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where
   soci::session sql = ModelFactory::getSession("default");
   soci::row r;
 
-	std::string query = fmt::format("select * from {} where {} limit 1", 
-    T::Definition.table_name, where);
+	std::string query = fmt::format(
+    "select * from {table_name} where {where} limit 1", 
+    fmt::arg("table_name", T::Definition.table_name), 
+    fmt::arg("where", where));
+
 	Model::Log(query);
   sql << query, soci::use(&where_values), soci::into(r);
 
@@ -769,7 +778,7 @@ unsigned long Model::Instance<T>::Count(std::string query, Args... args){
 
   soci::statement st(sql);
 
-	Model::Log(query);
+  Model::Log(query);
   ((void) st.exchange(soci::use<Args>(args)), ...);
 
   st.exchange(soci::into(count));
@@ -808,18 +817,21 @@ void Model::Instance<T>::CreateTable(std::vector<std::pair<std::string,std::stri
   for (const auto &column : columns)
     joined_columns.append(", "+column.first+" "+column.second);
 
-	std::string query;
-  if (sql.get_backend_name() == "sqlite3") {
-		query = fmt::format( 
-      "create table if not exists {} ( {} integer primary key {} )", 
-      T::Definition.table_name, T::Definition.pkey_column, joined_columns);
-  } else if (sql.get_backend_name() == "mysql") { 
-    query = fmt::format( 
-      "create table if not exists {} ( {} integer NOT NULL AUTO_INCREMENT {}, PRIMARY KEY({}) )", 
-      T::Definition.table_name, T::Definition.pkey_column, joined_columns, 
-      T::Definition.pkey_column);
-  } else 
+  std::string query;
+  if (sql.get_backend_name() == "sqlite3")
+    query = "create table if not exists {table_name} ("
+      " {pkey_column} integer primary key {columns} )";
+  else if (sql.get_backend_name() == "mysql")
+    query = "create table if not exists {table_name} ("
+      " {pkey_column} integer NOT NULL AUTO_INCREMENT {columns},"
+      " PRIMARY KEY({pkey_column}) )";
+  else 
     throw ModelException("Unrecognized backend. Unable to create table");
+
+  query = fmt::format( query, 
+    fmt::arg("table_name", T::Definition.table_name),
+    fmt::arg("pkey_column", T::Definition.pkey_column),
+    fmt::arg("columns", joined_columns));
 
 	Model::Log(query);
 	sql << query;
@@ -831,7 +843,8 @@ void Model::Instance<T>::DropTable() {
 
   // NOTE: I don't think there's any way to error test this, other than to expect
   // for an error to throw from soci...
-	std::string query = fmt::format("drop table {}", T::Definition.table_name);
+	std::string query = fmt::format("drop table {table_name}",
+    fmt::arg("table_name", T::Definition.table_name));
   sql << query;
 }
 
