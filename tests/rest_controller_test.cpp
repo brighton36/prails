@@ -34,13 +34,9 @@ class TaskControllerFixture : public PrailsControllerTest {
     }
 };
 
-INIT_MODEL_REGISTRY()
-INIT_CONTROLLER_REGISTRY()
-
-REGISTER_MODEL(Task)
-REGISTER_CONTROLLER(TasksController)
-
-INIT_PRAILS_TEST_ENVIRONMENT()
+PSYM_TEST_ENVIRONMENT()
+PSYM_MODEL(Task)
+PSYM_CONTROLLER(TasksController)
 
 TEST_F(TaskControllerFixture, index) {
 

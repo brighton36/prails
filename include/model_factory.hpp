@@ -3,13 +3,13 @@
 #include "exceptions.hpp"
 
 // NOTE: This probably needs to be re-worked into a class or struct:
-#define INIT_MODEL_REGISTRY() \
+#define PSYM_MODELS() \
   std::shared_ptr<ModelFactory::map_type> ModelFactory::models = std::make_shared<ModelFactory::map_type>(); \
   std::shared_ptr<ModelFactory::dsn_type> ModelFactory::dsns = std::make_shared<ModelFactory::dsn_type>(); \
   ModelFactory::Logger ModelFactory::logger = nullptr;
 
-#define REGISTER_MODEL(name) ModelRegister<name> name::reg(#name);
-#define REGISTER_DSN(name, value) ModelFactory::dsn(#name, #value);
+#define PSYM_MODEL(name) ModelRegister<name> name::reg(#name);
+#define PSYM_DSN(name, value) ModelFactory::dsn(#name, #value);
 
 template<typename T> 
 void migrateT() { 

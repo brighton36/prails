@@ -1,10 +1,10 @@
 #pragma once
 #include "controller.hpp"
 
-#define INIT_CONTROLLER_REGISTRY() \
+#define PSYM_CONTROLLERS() \
   std::shared_ptr<ControllerFactory::map_type> ControllerFactory::map = nullptr;
 
-#define REGISTER_CONTROLLER(name) ControllerRegister<name> name::reg(#name);
+#define PSYM_CONTROLLER(name) ControllerRegister<name> name::reg(#name);
 
 template<typename T> 
 std::shared_ptr<Controller::Instance> createT(std::string name, std::string views_path) {

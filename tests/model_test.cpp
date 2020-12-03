@@ -7,14 +7,10 @@
 
 using namespace std;
 
-INIT_MODEL_REGISTRY()
-INIT_CONTROLLER_REGISTRY()
-
-REGISTER_MODEL(TimeModel)
-REGISTER_MODEL(ValidationModel)
-REGISTER_MODEL(TesterModel)
-
-INIT_PRAILS_TEST_ENVIRONMENT()
+PSYM_TEST_ENVIRONMENT()
+PSYM_MODEL(TimeModel)
+PSYM_MODEL(ValidationModel)
+PSYM_MODEL(TesterModel)
 
 class TesterModelTest : public PrailsControllerTest {
  public:

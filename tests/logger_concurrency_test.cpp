@@ -73,9 +73,9 @@ class LoggerConcurrencyEnvironment : public PrailsEnvironment {
     }
 };
 
-REGISTER_CONTROLLER(LoggerConcurrencyController)
+PSYM_TEST_ENVIRONMENT_WITH(LoggerConcurrencyEnvironment)
+PSYM_CONTROLLER(LoggerConcurrencyController)
 
-INIT_PRAILS_TEST_ENVIRONMENT_WITH(LoggerConcurrencyEnvironment)
 
 TEST(LoggerConcurrency, ab_log_a_visit) {
   // Note that there's roughly two phases to this test. The first phase 

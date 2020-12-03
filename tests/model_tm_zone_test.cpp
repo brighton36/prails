@@ -22,13 +22,9 @@ class TimeModelLocal : public Model::Instance<TimeModelLocal> {
     static ModelRegister<TimeModelLocal> reg;
 };
 
-INIT_MODEL_REGISTRY()
-INIT_CONTROLLER_REGISTRY()
-
-REGISTER_MODEL(TimeModel)
-REGISTER_MODEL(TimeModelLocal)
-
-INIT_PRAILS_TEST_ENVIRONMENT()
+PSYM_TEST_ENVIRONMENT()
+PSYM_MODEL(TimeModel)
+PSYM_MODEL(TimeModelLocal)
 
 class ModelTmZoneTest : public PrailsControllerTest {
   public:

@@ -12,10 +12,11 @@
 #include "server.hpp"
 
 // NOTE: This initialization must occur after models are registered
-#define INIT_PRAILS_TEST_ENVIRONMENT() \
-  INIT_PRAILS_TEST_ENVIRONMENT_WITH(PrailsEnvironment)
+#define PSYM_TEST_ENVIRONMENT() PSYM_TEST_ENVIRONMENT_WITH(PrailsEnvironment)
 
-#define INIT_PRAILS_TEST_ENVIRONMENT_WITH(GTEST_ENV) \
+#define PSYM_TEST_ENVIRONMENT_WITH(GTEST_ENV) \
+  PSYM_MODELS() \
+  PSYM_CONTROLLERS() \
   ConfigParser * PrailsControllerTest::config = nullptr; \
   GTEST_ENV* const prails_env = \
   static_cast<GTEST_ENV*>(::testing::AddGlobalTestEnvironment(new GTEST_ENV));

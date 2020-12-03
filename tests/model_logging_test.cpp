@@ -5,12 +5,8 @@
 
 using namespace std;
 
-INIT_MODEL_REGISTRY()
-INIT_CONTROLLER_REGISTRY()
-
-REGISTER_MODEL(TesterModel)
-
-INIT_PRAILS_TEST_ENVIRONMENT()
+PSYM_TEST_ENVIRONMENT()
+PSYM_MODEL(TesterModel)
 
 TEST_F(PrailsControllerTest, log_to_stdout) {
   std::string model_logger_output;
