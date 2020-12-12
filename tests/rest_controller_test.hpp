@@ -4,7 +4,7 @@
 
 class Task : public Model::Instance<Task> { 
   public:
-    MODEL_CONSTRUCTOR(Task)
+    using Model::Instance<Task>::Instance;
 
     MODEL_ACCESSOR(id, long)
     MODEL_ACCESSOR(name, std::string)

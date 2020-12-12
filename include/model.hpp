@@ -17,11 +17,6 @@
 #include "config_parser.hpp"
 #include "utilities.hpp"
 
-#define MODEL_CONSTRUCTOR(classname) \
-  explicit classname() : Instance(&classname::Definition) {}; \
-  explicit classname(const Model::Record &r, bool isDirty = true) : \
-    Instance(r, isDirty, &classname::Definition) {};
-
 // I suppose we could use a template here, and do without this macro...:
 // https://stackoverflow.com/questions/9065081/how-do-i-get-the-argument-types-of-a-function-pointer-in-a-variadic-template-cla
 #define MODEL_ACCESSOR(name, type) \
@@ -136,9 +131,6 @@ namespace Model {
   template <class T>
   class Instance {
     protected:
-      explicit Instance(const Model::Definition* const);
-      explicit Instance(Model::Record, bool, const Model::Definition* const);
-
       static long GetAffectedRows(soci::statement &, soci::session &);
 
       bool isDirty_;
@@ -149,6 +141,12 @@ namespace Model {
       Model::Record record;
 
     public: 
+      Instance();
+      Instance(Model::Record);
+      Instance(Model::Record, bool);
+      Instance(const Model::Definition* const);
+      Instance(Model::Record, bool, const Model::Definition* const);
+
       bool isValid();
       bool isDirty();
       void save();
@@ -401,6 +399,17 @@ namespace soci {
 }
 
 template <class T>
+Model::Instance<T>::Instance() : Model::Instance<T>::Instance(&T::Definition) {}
+
+template <class T>
+Model::Instance<T>::Instance(Model::Record record_) : 
+  Model::Instance<T>::Instance(record_, true, &T::Definition) {}
+
+template <class T>
+Model::Instance<T>::Instance(Model::Record record_, bool isDirty) : 
+  Model::Instance<T>::Instance(record_, isDirty, &T::Definition) {}
+
+template <class T>
 Model::Instance<T>::Instance(const Model::Definition * const definition) : 
   isDirty_(true), isValid_(std::nullopt), definition(definition) {}
 
@@ -508,6 +517,7 @@ void Model::Instance<T>::save() {
 
   std::vector<std::string> columns = modelKeys();
 
+  // TODO: We may have a case of a new model, with a set id ...
   if (recordGet(definition->pkey_column)) {
     std::vector<std::string> set_pairs;
     for (auto &key : columns) 

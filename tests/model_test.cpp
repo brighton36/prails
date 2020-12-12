@@ -596,3 +596,18 @@ TEST_F(TesterModelTest, to_json_test) {
 
   EXPECT_EQ(json.size(), 13);
 }
+
+// In this test, we insert a record, with the id field set
+TEST_F(TesterModelTest, test_insert_with_id) {
+  TesterModel model(john_smith_record);
+  EXPECT_EQ(model.isDirty(), true);
+  model.id(673);
+  EXPECT_EQ(model.isDirty(), true);
+
+  ASSERT_NO_THROW(model.save());
+
+  auto retrieved_model = TesterModel::Find(673);
+  EXPECT_TRUE(retrieved_model.has_value());
+
+  EXPECT_EQ((*retrieved_model).id(), 673);
+}

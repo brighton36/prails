@@ -7,7 +7,8 @@ using namespace std;
 
 class TimeModelLocal : public Model::Instance<TimeModelLocal> { 
   public :
-    MODEL_CONSTRUCTOR(TimeModelLocal)
+    using Model::Instance<TimeModelLocal>::Instance;
+
     MODEL_ACCESSOR(id, long)
     MODEL_ACCESSOR(tested_at, std::tm)
 

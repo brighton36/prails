@@ -4,7 +4,8 @@ using namespace prails::utilities;
 
 class TimeModel : public Model::Instance<TimeModel> { 
   public :
-    MODEL_CONSTRUCTOR(TimeModel)
+    using Model::Instance<TimeModel>::Instance;
+
     MODEL_ACCESSOR(id, long)
     MODEL_ACCESSOR(tested_at, std::tm)
 
@@ -28,7 +29,8 @@ class TimeModel : public Model::Instance<TimeModel> {
 
 class ValidationModel : public Model::Instance<ValidationModel> { 
   public :
-    MODEL_CONSTRUCTOR(ValidationModel)
+    using Model::Instance<ValidationModel>::Instance;
+
     MODEL_ACCESSOR(id, long)
     MODEL_ACCESSOR(email, std::string)
     MODEL_ACCESSOR(is_lazy, int)
@@ -83,7 +85,7 @@ class ValidationModel : public Model::Instance<ValidationModel> {
 
 class TesterModel : public Model::Instance<TesterModel> { 
   public:
-    MODEL_CONSTRUCTOR(TesterModel)
+    using Model::Instance<TesterModel>::Instance;
 
     MODEL_ACCESSOR(id, long)
     MODEL_ACCESSOR(first_name, std::string)

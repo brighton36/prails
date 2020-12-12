@@ -14,8 +14,8 @@ using namespace prails::utilities;
 
 enum class RunMode { Help, WebServer, Migration, OutputUrl };
 
-PSYM_MODELS();
-PSYM_CONTROLLERS();
+PSYM_MODELS()
+PSYM_CONTROLLERS()
 
 int prails::main(int argc, char *argv[]) {
   string config_path;
