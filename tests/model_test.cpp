@@ -188,6 +188,7 @@ TEST_F(TesterModelTest, insert_and_update) {
   model.unlucky_number(13);
   model.is_lazy(true);
   EXPECT_EQ(model.isDirty(), true);
+  EXPECT_EQ(model.isFromDatabase(), true);
   EXPECT_NO_THROW(model.save());
 
   TesterModel retrieved = *TesterModel::Find(inserted_id);
@@ -249,22 +250,6 @@ TEST_F(TesterModelTest, test_numeric_store_retrieve_limits) {
   retrieve_model = *TesterModel::Find(inserted_id);
   EXPECT_EQ(*retrieve_model.double_test(), -1*9.22337203685478e+18);
   EXPECT_EQ(*retrieve_model.int_test(), -1*numeric_limits<int>::max());
-}
-
-TEST_F(TesterModelTest, ensure_failure_to_update_missing_row) {
-  // What happens if you try to update a record for which an id doesn't exist 
-  // in the table..
-  // NOTE: I'm not sure this is exactly the behavior we want, because it's 
-  // conceivable that we may want to specify an id. (Say for a restore operation)
-  // I guess if this becomes a feature we want, we can consider implementing a
-  // force_insert parameter into save, or, maybe something smarter than than.
-  // Maybe we could just run an update, and if the affected_rows is zero, then
-  // run an insert.... not sure.
-  Model::Record record = john_smith_record;
-  record["id"] = 2147483647;
-  TesterModel model(record);
-  EXPECT_EQ(model.isDirty(), true);
-  EXPECT_THROW(model.save(), exception);
 }
 
 TEST(model_base_test, invalid_type_errors) {
@@ -515,7 +500,8 @@ TEST_F(TesterModelTest, test_validator_additional_where_unique) {
   louise.is_company_admin(false);
   EXPECT_NO_THROW(louise.save());
 
-  horton.resetStateCache();
+  horton.markDirty();
+
   EXPECT_TRUE(horton.isValid());
   EXPECT_NO_THROW(horton.save());
 }
@@ -598,16 +584,42 @@ TEST_F(TesterModelTest, to_json_test) {
 }
 
 // In this test, we insert a record, with the id field set
-TEST_F(TesterModelTest, test_insert_with_id) {
+TEST_F(TesterModelTest, test_insert_with_specified_id) {
   TesterModel model(john_smith_record);
   EXPECT_EQ(model.isDirty(), true);
+  EXPECT_EQ(model.isFromDatabase(), false);
   model.id(673);
   EXPECT_EQ(model.isDirty(), true);
+  EXPECT_EQ(model.isFromDatabase(), false);
 
   ASSERT_NO_THROW(model.save());
+  EXPECT_EQ(model.isFromDatabase(), true);
 
   auto retrieved_model = TesterModel::Find(673);
   EXPECT_TRUE(retrieved_model.has_value());
 
   EXPECT_EQ((*retrieved_model).id(), 673);
+}
+
+// I'm not sure what the right thing to do is, here. But, this documents the
+// current behavior.
+TEST_F(TesterModelTest, test_id_change) {
+  // Create a record:
+  TesterModel model(john_smith_record);
+  ASSERT_NO_THROW(model.save()); // this is an insert
+
+  long first_id = *(model.id());
+
+  // Now We change the id
+  model.id(1234); 
+
+  ASSERT_NO_THROW(model.save()); // This should also be an insert.
+
+  auto retrieved_model = TesterModel::Find(1234);
+  EXPECT_TRUE(retrieved_model.has_value());
+  EXPECT_EQ((*retrieved_model).id(), 1234);
+
+  auto retrieved_model2 = TesterModel::Find(first_id);
+  EXPECT_TRUE(retrieved_model2.has_value());
+  EXPECT_EQ((*retrieved_model2).id(), first_id);
 }

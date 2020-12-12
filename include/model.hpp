@@ -133,7 +133,13 @@ namespace Model {
     protected:
       static long GetAffectedRows(soci::statement &, soci::session &);
 
+      // This flag indicates that the record is known to be out of sync with 
+      // the database
       bool isDirty_;
+
+      // This flag indicates that the record is known to exist in the database
+      bool isFromDatabase_;
+
       Model::RecordErrors errors_;
       std::optional<bool> isValid_;
       const Model::Definition* definition;
@@ -149,9 +155,10 @@ namespace Model {
 
       bool isValid();
       bool isDirty();
+      bool isFromDatabase();
       void save();
       void remove();
-      void resetStateCache();
+      void markDirty();
       Model::RecordErrors errors();
       std::optional<Model::RecordValue> recordGet(const std::string&);
       void recordSet(const std::string&, const std::optional<Model::RecordValue>&);
@@ -399,28 +406,29 @@ namespace soci {
 }
 
 template <class T>
-Model::Instance<T>::Instance() : Model::Instance<T>::Instance(&T::Definition) {}
+Model::Instance<T>::Instance() :
+  Model::Instance<T>::Instance(&T::Definition) {}
 
 template <class T>
 Model::Instance<T>::Instance(Model::Record record_) : 
-  Model::Instance<T>::Instance(record_, true, &T::Definition) {}
+  Model::Instance<T>::Instance(record_, false, &T::Definition) {}
 
 template <class T>
-Model::Instance<T>::Instance(Model::Record record_, bool isDirty) : 
-  Model::Instance<T>::Instance(record_, isDirty, &T::Definition) {}
+Model::Instance<T>::Instance(Model::Record record_, bool isFromDatabase) : 
+  Model::Instance<T>::Instance(record_, isFromDatabase, &T::Definition) {}
 
 template <class T>
 Model::Instance<T>::Instance(const Model::Definition * const definition) : 
-  isDirty_(true), isValid_(std::nullopt), definition(definition) {}
+  isDirty_(true), isFromDatabase_(false), isValid_(std::nullopt), definition(definition) {}
 
 template <class T>
-Model::Instance<T>::Instance(Model::Record record_, bool isDirty, 
-  const Model::Definition * const definition) : isValid_(std::nullopt), 
-  definition(definition) {
-
+Model::Instance<T>::Instance(
+  Model::Record record_, bool isFromDatabase, const Model::Definition * const definition
+) : isValid_(std::nullopt), definition(definition) {
   // This mostly enforces type checks:
   for (const auto &col_val : record_) recordSet(col_val.first, col_val.second);
-  isDirty_ = isDirty;
+  isFromDatabase_ = isFromDatabase;
+  isDirty_ = (!isFromDatabase);
 }
 
 // This returns all the keys we have:
@@ -448,7 +456,10 @@ template <class T>
 bool Model::Instance<T>::isDirty() { return isDirty_; }
 
 template <class T>
-void Model::Instance<T>::resetStateCache() { 
+bool Model::Instance<T>::isFromDatabase() { return isFromDatabase_; }
+
+template <class T>
+void Model::Instance<T>::markDirty() { 
   isDirty_ = true; 
   isValid_ = std::nullopt; 
 }
@@ -517,8 +528,7 @@ void Model::Instance<T>::save() {
 
   std::vector<std::string> columns = modelKeys();
 
-  // TODO: We may have a case of a new model, with a set id ...
-  if (recordGet(definition->pkey_column)) {
+  if (isFromDatabase()) {
     std::vector<std::string> set_pairs;
     for (auto &key : columns) 
       if (key != definition->pkey_column) set_pairs.push_back(key+" = :"+key);
@@ -582,6 +592,7 @@ void Model::Instance<T>::save() {
   }
 
   isDirty_ = false;
+  isFromDatabase_ = true;
 }
 
 template <class T>
@@ -598,6 +609,11 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
   // First we'll mark the record state:
   isDirty_ = true;
   isValid_ = std::nullopt;
+
+  // This ensures that any changes to the pkey value, results in an insert 
+  // operation during save()
+  if (col == definition->pkey_column) 
+    isFromDatabase_ = false;
 
   // If they're setting the value to null, this path is easy:
   if (val == std::nullopt) {
@@ -748,7 +764,7 @@ std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where
 
   if (!sql.got_data()) return std::nullopt;
 
-  return std::make_optional(T(RowToRecord(r), false));
+  return std::make_optional(T(RowToRecord(r), true));
 }
 
 template <class T>
@@ -775,7 +791,7 @@ std::vector<T> Model::Instance<T>::Select(std::string query, Args... args) {
 
   soci::rowset_iterator<soci::row> it(st, rows);
   soci::rowset_iterator<soci::row> end;
-  for (; it != end; ++it) ret.push_back(T(RowToRecord(*it), false));
+  for (; it != end; ++it) ret.push_back(T(RowToRecord(*it), true));
 
   return ret;
 }
