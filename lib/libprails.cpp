@@ -12,21 +12,100 @@ using namespace std;
 using namespace Pistache;
 using namespace prails::utilities;
 
-enum class RunMode { Help, WebServer, Migration, OutputUrl };
-
 PSYM_MODELS()
 PSYM_CONTROLLERS()
 
-int prails::main(int argc, char *argv[]) {
-  string config_path;
-  RunMode run_mode = RunMode::Help;
+constexpr std::string_view help_output {
+  "Usage: {program_name} [-f CONFIG_FILE] COMMAND\n"
+  "A web server built with prails.\n\n"
+  "Global Switches:\n" 
+  "  -f CONFIG_FILE Use the supplied file for configuration settings.\n"
+  "  --help         Display this help and exit.\n\n"
+  "The following commands can be executed:\n"
+  "  server         Run in server mode.\n"
+  "  migrate        Run model migrations.\n"
+  "  output URL [FILE]  Output a URL to stdout (default) or [FILE].\n"
+  "The supplied CONFIG_FILE is expected to be a yaml-formatted server configuration file.\n"
+  "(See https://en.wikipedia.org/wiki/YAML for details on the YAML file format.)\n\n"
+};
 
-  string program_name = filesystem::path(string(argv[0])).filename();
-  vector<string> args(argv + 1, argv + argc);
+unsigned int mode_help(ConfigParser &, shared_ptr<spdlog::logger>, vector<string> args) {
+  string program_name = filesystem::path(args[0]).filename();
+  cout << fmt::format(help_output, fmt::arg("program_name", program_name));
+  return 1;
+}
+
+unsigned int mode_server(ConfigParser &config, shared_ptr<spdlog::logger> logger, vector<string> args) {
+  string program_name = filesystem::path(args[0]).filename();
+  logger->info("{} log started. Cores={} Threads={}", program_name,
+    hardware_concurrency(), config.threads());
+  Server server(config);
+  server.start();
+  return 0;
+}
+
+unsigned int mode_migrate(ConfigParser &, shared_ptr<spdlog::logger> logger, vector<string> args) {
+  string program_name = filesystem::path(args[0]).filename();
+  logger->info("{} migration.", program_name);
+
+  for (const auto &reg : ModelFactory::getModelNames()) {
+    logger->info("Running migration for {}..", reg);
+    ModelFactory::migrate(reg);
+  }
+
+  return 0;
+}
+
+unsigned int mode_output(ConfigParser &config, shared_ptr<spdlog::logger> logger, vector<string> args) {
+  string url; 
+  string output; 
+  
+  if (args.size() > 1) {
+    url = args[1];
+    if (args.size() > 2) output = args[2];
+  } else
+    throw invalid_argument("Missing output parameter(s)");
+
+  logger->info("Outputting {} to {}.", url, (output.empty()) ? "STDOUT" : output);
+
+  Server server(config);
+  server.startThreaded();
+
+  auto addr = Pistache::Address(config.address(), config.port());
+  auto browser = httplib::Client(addr.host().c_str(), (uint16_t) addr.port());
+  auto res = browser.Get(url.c_str());
+
+  if (res->status != 200)
+    throw logic_error(fmt::format("Error when requesting resource: {}", 
+      res->status));
+
+  if (output.empty())
+    cout << res->body << endl;
+  else {
+    std::ofstream out(output);
+    out << res->body;
+    out.close();
+  }
+
+  server.shutdown();
+
+  return 0;
+}
+
+int prails::main(int argc, char *argv[], map<string, ModeFunction> modes = {}) {
+  string config_path;
+  string run_mode = "help";
+
+  vector<string> args(argv, argv + argc);
+
+  if (!modes.count("server")) modes["server"] = mode_server;
+  if (!modes.count("help")) modes["help"] = mode_help;
+  if (!modes.count("migrate")) modes["migrate"] = mode_migrate;
+  if (!modes.count("output")) modes["output"] = mode_output;
 
   // NOTE: We remove the entries in the args list as we recognize them. We
   //       save anything we don't recognize, for use below.
-  for (auto it = args.begin(); it != args.end(); it++) {
+  for (auto it = args.begin()+1; it != args.end(); it++) {
     string arg = *it;
     args.erase(it--);
 
@@ -40,19 +119,11 @@ int prails::main(int argc, char *argv[]) {
       args.erase(it--);
     }
     else if ( (arg == "--help") || (arg == "-h") ) {
-      run_mode = RunMode::Help;
+      run_mode = "help";
       break;
     }
-    else if (arg == "migrate") {
-      run_mode = RunMode::Migration;
-      break;
-    }
-    else if (arg == "server") {
-      run_mode = RunMode::WebServer;
-      break;
-    }
-    else if (arg == "output") {
-      run_mode = RunMode::OutputUrl;
+    else if (modes.count(arg) && run_mode.empty()) {
+      run_mode = arg;
       break;
     }
     else {
@@ -65,7 +136,7 @@ int prails::main(int argc, char *argv[]) {
   shared_ptr<spdlog::logger> logger;
 
   if (config_path.empty()) 
-    run_mode = RunMode::Help;
+    run_mode = "help";
   else {
     config = ConfigParser(config_path);
     config.is_logging_to_console(true);
@@ -84,71 +155,5 @@ int prails::main(int argc, char *argv[]) {
     Controller::Initialize(config);
   }
 
-  switch (run_mode) {
-    case RunMode::Help: {
-      cout << fmt::format("Usage: {} [-f CONFIG_FILE] COMMAND\n"
-        "A web server built with prails.\n\n"
-        "Global Switches:\n" 
-        "  -f CONFIG_FILE Use the supplied file for configuration settings.\n"
-        "  --help         Display this help and exit.\n\n"
-        "The following commands can be executed:\n"
-        "  server         Run in server mode.\n"
-        "  migrate        Run model migrations.\n"
-        "  output URL [FILE]  Output a URL to stdout (default) or [FILE].\n"
-        "The supplied CONFIG_FILE is expected to be a yaml-formatted server configuration file.\n"
-        "(See https://en.wikipedia.org/wiki/YAML for details on the YAML file format.)\n\n",
-        program_name);
-      return 1;
-    }
-    case RunMode::WebServer: {
-      logger->info("{} log started. Cores={} Threads={}", program_name,
-        hardware_concurrency(), config.threads());
-      Server server(config);
-      server.start();
-      } break;
-    case RunMode::OutputUrl: {
-      string url; 
-      string output; 
-      
-      if (args.size() > 0) {
-        url = args[0];
-        if (args.size() > 1) output = args[1];
-      } else
-        throw invalid_argument("Missing output parameter(s)");
-
-      logger->info("Outputting {} to {}.", url, 
-        (output.empty()) ? "STDOUT" : output);
-
-      Server server(config);
-      server.startThreaded();
-
-      auto addr = Pistache::Address(config.address(), config.port());
-      auto browser = httplib::Client(addr.host().c_str(), (uint16_t) addr.port());
-      auto res = browser.Get(url.c_str());
-
-      if (res->status != 200)
-        throw logic_error(fmt::format("Error when requesting resource: {}", 
-          res->status));
-
-      if (output.empty())
-        cout << res->body << endl;
-      else {
-        std::ofstream out(output);
-        out << res->body;
-        out.close();
-      }
-
-      server.shutdown();
-    } break;
-    case RunMode::Migration: {
-      logger->info("{} migration.", program_name);
-
-      for (const auto &reg : ModelFactory::getModelNames()) {
-        logger->info("Running migration for {}..", reg);
-        ModelFactory::migrate(reg);
-      }
-    } break; 
-  }
-
-  return 0;
+  return modes[run_mode](config, logger, args);
 }
