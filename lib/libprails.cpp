@@ -30,13 +30,13 @@ constexpr std::string_view help_output {
   "(See https://en.wikipedia.org/wiki/YAML for details on the YAML file format.)\n\n"
 };
 
-unsigned int mode_help(ConfigParser &, shared_ptr<spdlog::logger>, vector<string> args) {
+unsigned int mode_help(ConfigParser &, shared_ptr<spdlog::logger>, const vector<string> & args) {
   string program_name = filesystem::path(args[0]).filename();
   cout << fmt::format(help_output, fmt::arg("program_name", program_name));
   return 1;
 }
 
-unsigned int mode_server(ConfigParser &config, shared_ptr<spdlog::logger> logger, vector<string> args) {
+unsigned int mode_server(ConfigParser &config, shared_ptr<spdlog::logger> logger, const vector<string> & args) {
   string program_name = filesystem::path(args[0]).filename();
   logger->info("{} log started. Cores={} Threads={}", program_name,
     hardware_concurrency(), config.threads());
@@ -45,7 +45,7 @@ unsigned int mode_server(ConfigParser &config, shared_ptr<spdlog::logger> logger
   return 0;
 }
 
-unsigned int mode_migrate(ConfigParser &, shared_ptr<spdlog::logger> logger, vector<string> args) {
+unsigned int mode_migrate(ConfigParser &, shared_ptr<spdlog::logger> logger, const vector<string> & args) {
   string program_name = filesystem::path(args[0]).filename();
   logger->info("{} migration.", program_name);
 
@@ -57,7 +57,7 @@ unsigned int mode_migrate(ConfigParser &, shared_ptr<spdlog::logger> logger, vec
   return 0;
 }
 
-unsigned int mode_output(ConfigParser &config, shared_ptr<spdlog::logger> logger, vector<string> args) {
+unsigned int mode_output(ConfigParser &config, shared_ptr<spdlog::logger> logger, const vector<string> & args) {
   string url; 
   string output; 
   
