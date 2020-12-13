@@ -1,3 +1,5 @@
+#include <map>
+
 #include "config_parser.hpp"
 
 namespace prails {
