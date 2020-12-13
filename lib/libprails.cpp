@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <filesystem>
 
@@ -94,7 +95,7 @@ unsigned int mode_output(ConfigParser &config, shared_ptr<spdlog::logger> logger
 
 int prails::main(int argc, char *argv[], map<string, ModeFunction> modes) {
   string config_path;
-  string run_mode = "help";
+  string run_mode;
 
   vector<string> args(argv, argv + argc);
 
@@ -135,7 +136,7 @@ int prails::main(int argc, char *argv[], map<string, ModeFunction> modes) {
   ConfigParser config;
   shared_ptr<spdlog::logger> logger;
 
-  if (config_path.empty()) 
+  if (run_mode.empty() || config_path.empty()) 
     run_mode = "help";
   else {
     config = ConfigParser(config_path);
@@ -157,3 +158,4 @@ int prails::main(int argc, char *argv[], map<string, ModeFunction> modes) {
 
   return modes[run_mode](config, logger, args);
 }
+
