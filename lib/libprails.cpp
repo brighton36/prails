@@ -92,7 +92,7 @@ unsigned int mode_output(ConfigParser &config, shared_ptr<spdlog::logger> logger
   return 0;
 }
 
-int prails::main(int argc, char *argv[], map<string, ModeFunction> modes = {}) {
+int prails::main(int argc, char *argv[], map<string, ModeFunction> modes) {
   string config_path;
   string run_mode = "help";
 
