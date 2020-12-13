@@ -22,8 +22,8 @@ class TesterModelTest : public PrailsControllerTest {
     {"last_name", "Smith"},
     {"email", "jsmith@google.com"},
     {"password", nullopt},
-    {"favorite_number", (long) 7},
-    {"unlucky_number", (long)3},
+    {"favorite_number", (long long int) 7},
+    {"unlucky_number", (long long int) 3},
     {"is_enthusiastic",  (int) true},
     {"is_lazy", (int) false},
     {"untyped_string", "this wasnt in the constructor"}
@@ -33,7 +33,7 @@ class TesterModelTest : public PrailsControllerTest {
   Model::Definition empty_definition {
     "id",
     "unavailable_table", 
-    Model::ColumnTypes({{"id", COL_TYPE(long)}}),
+    Model::ColumnTypes({{"id", COL_TYPE(long long int)}}),
     Model::Validations()
   };
   
@@ -253,11 +253,11 @@ TEST_F(TesterModelTest, test_numeric_store_retrieve_limits) {
 }
 
 TEST(model_base_test, invalid_type_errors) {
-  EXPECT_THROW(TesterModel({{"first_name", (long) 3}}), exception);
+  EXPECT_THROW(TesterModel({{"first_name", (long long int) 3}}), exception);
 
   // This should Also break
   TesterModel break_model_two;
-  EXPECT_THROW(break_model_two.recordSet("first_name", (long) 3), exception);
+  EXPECT_THROW(break_model_two.recordSet("first_name", (long long int) 3), exception);
 }
 
 TEST_F(TesterModelTest, test_delete) {
@@ -444,13 +444,13 @@ TEST_F(TesterModelTest, test_validator_string_column_unique) {
 TEST_F(TesterModelTest, test_validator_numeric_column_unique) {
   EXPECT_NO_THROW( ValidationModel({
     {"email", "charlie@google.com"},
-    {"favorite_number", (long) 23},
+    {"favorite_number", 23},
     {"is_lazy", (int) false}
     }).save());
   
   ValidationModel model({
     {"email", "juan@google.com"}, 
-    {"favorite_number", (long) 23}
+    {"favorite_number", 23}
   });
 
   EXPECT_FALSE(model.isValid());

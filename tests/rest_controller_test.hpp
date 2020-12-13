@@ -6,7 +6,7 @@ class Task : public Model::Instance<Task> {
   public:
     using Model::Instance<Task>::Instance;
 
-    MODEL_ACCESSOR(id, long)
+    MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(name, std::string)
     MODEL_ACCESSOR(active, int)
     MODEL_ACCESSOR(description, std::string)
@@ -17,7 +17,7 @@ class Task : public Model::Instance<Task> {
       "id",
       "tasks", 
       Model::ColumnTypes({
-        {"id",          COL_TYPE(long)},
+        {"id",          COL_TYPE(long long int)},
         {"name",        COL_TYPE(std::string)},
         {"active",      COL_TYPE(int)},
         {"description", COL_TYPE(std::string)},

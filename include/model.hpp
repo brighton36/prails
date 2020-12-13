@@ -43,7 +43,7 @@ namespace Model {
   class Definition;
 
   typedef std::map<std::string, std::size_t> ColumnTypes;
-  typedef std::variant<std::string,std::tm,double,int,unsigned long,long> RecordValue;
+  typedef std::variant<std::string,std::tm,double,int,unsigned long,long long int> RecordValue;
   typedef std::map<std::string, std::optional<RecordValue>> Record;
   typedef std::optional<std::pair<std::optional<std::string>, std::string>> RecordError;
   typedef std::map<std::optional<std::string>, std::vector<std::string>> RecordErrors;
@@ -114,11 +114,17 @@ namespace Model {
         is_persisting_in_utc(is_persisting_in_utc) {
 
         // Check that pkey exists, and is long:
-        if ((column_types.find(pkey_column) == column_types.end()) || 
-          (column_types.at(pkey_column) != COL_TYPE(long)))
+        if (column_types.find(pkey_column) == column_types.end())
           throw ModelException(
           "Invalid model definition. References pkey \"{}\", which cant be "
-          "found in ColumnTypes, or which isn't of type long.", pkey_column);
+          "found in ColumnTypes.", pkey_column);
+
+        auto provided_pkey_type = column_types.at(pkey_column);
+        std::size_t expected_pkey_type = COL_TYPE(long long int);
+        if (provided_pkey_type != expected_pkey_type)
+          throw ModelException(
+          "Invalid model definition. pkey \"{}\", is of type {} and not {}",
+          pkey_column, provided_pkey_type, expected_pkey_type);
       };
 
       std::string pkey_column; // NOTE: This column must be a long as of this time.
@@ -165,11 +171,11 @@ namespace Model {
       std::vector<std::string> recordKeys();
       std::vector<std::string> modelKeys();
 
-      static void Remove(long);
+      static void Remove(long long int);
       static void Migrate();
       static Model::Record RowToRecord(soci::row &);
-      static void Remove(std::string, long);
-      static std::optional<T> Find(long);
+      static void Remove(std::string, long long int);
+      static std::optional<T> Find(long long int);
       static std::optional<T> Find(std::string, Model::Record);
       template <typename... Args> 
       static std::vector<T> Select(std::string, Args...);
@@ -565,17 +571,15 @@ void Model::Instance<T>::save() {
     // sqlite3_last_insert_row_id. So, here, we just grab the connection manually
     // and run the typecast. This isn't that portable. so, perhaps we'll fix that
     // at some point.
-    long last_id = 0;
+    long long int last_id = 0;
 
     if (sql.get_backend_name() == "sqlite3") { 
       auto sql3backend = static_cast<soci::sqlite3_session_backend *>(sql.get_backend());
 
-      long long sqlite_last_id = sqlite3_last_insert_rowid(sql3backend->conn_);
+      last_id = sqlite3_last_insert_rowid(sql3backend->conn_);
 
-      if(!sqlite_last_id)
+      if(!last_id)
         throw ModelException("Unable to perform insert, last_insert_id returned zero.");
-
-      last_id = static_cast<long>(sqlite_last_id);
     } else if (sql.get_backend_name() == "mysql") { 
       auto mysqlbackend = static_cast<soci::mysql_session_backend *>(sql.get_backend());
 
@@ -584,9 +588,14 @@ void Model::Instance<T>::save() {
       if(!mysql_last_id)
         throw ModelException("Unable to perform insert, last_insert_id returned zero.");
 
-      last_id = static_cast<long>(mysql_last_id);
-    } else if (!sql.get_last_insert_id(definition->table_name, last_id))
-      throw ModelException("Unable to perform insert, last_insert_id returned zero.");
+      last_id = static_cast<long long int>(mysql_last_id);
+    } else {
+      long int soci_last_id = 0;
+      if (!sql.get_last_insert_id(definition->table_name, soci_last_id))
+        throw ModelException("Unable to perform insert, last_insert_id returned zero.");
+
+      last_id = static_cast<long long int>(soci_last_id);
+    }
 
     recordSet(definition->pkey_column, last_id);
   }
@@ -601,7 +610,7 @@ void Model::Instance<T>::remove() {
     throw ModelException("Cannot delete a record that has no id");
 
   Model::Instance<T>::Remove(definition->table_name,
-    std::get<long>(*recordGet(definition->pkey_column)));
+    std::get<long long int>(*recordGet(definition->pkey_column)));
 }
 
 template <class T>
@@ -632,7 +641,7 @@ void Model::Instance<T>::recordSet(const std::string &col, const std::optional<M
         case COL_TYPE(double): store_val = (double) 0; break;
         case COL_TYPE(int): store_val = (int) 0; break;
         case COL_TYPE(unsigned long): store_val = (unsigned long) 0; break;
-        case COL_TYPE(long): store_val = (long) 0; break;
+        case COL_TYPE(long long int): store_val = (long long int) 0; break;
         case COL_TYPE(std::tm): store_val = std::tm(); break;
         default:
          throw ModelException("Unable to determine column type of column {}", col);
@@ -701,12 +710,8 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
         case soci::dt_double: val = r.get<double>(i); break;
         case soci::dt_integer: val = r.get<int>(i); break;
         case soci::dt_unsigned_long_long: val = r.get<unsigned long>(i); break;
-        case soci::dt_long_long : {
-            long long int lret = r.get<long long>(i);
-            val = (long) lret; // TODO: This will... clip
-          }
-          break; 
-        case soci::dt_date : {
+        case soci::dt_long_long: val = r.get<long long int>(i); break; 
+        case soci::dt_date: {
             // NOTE: Soci provides us local tm's. Here, we're going to strip all
             // zone information, and return the tm with the provided datetime, 
             // but with the zone set to UTC.
@@ -733,7 +738,7 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
 }
 
 template <class T>
-void Model::Instance<T>::Remove(std::string table_name, long id) {
+void Model::Instance<T>::Remove(std::string table_name, long long int id) {
 
   soci::session sql = ModelFactory::getSession("default");
 	std::string query = fmt::format("delete from {table_name} where id = :id", 
@@ -750,7 +755,7 @@ void Model::Instance<T>::Remove(std::string table_name, long id) {
 }
 
 template <class T>
-std::optional<T> Model::Instance<T>::Find(long id){
+std::optional<T> Model::Instance<T>::Find(long long int id){
   return Model::Instance<T>::Find("id = :id", Model::Record({{"id", id}}));
 }
 
@@ -773,7 +778,7 @@ std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where
 }
 
 template <class T>
-void Model::Instance<T>::Remove(long id) {
+void Model::Instance<T>::Remove(long long int id) {
   Remove(T::Definition.table_name, id);
 }
 

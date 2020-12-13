@@ -9,11 +9,11 @@ class TimeModelLocal : public Model::Instance<TimeModelLocal> {
   public :
     using Model::Instance<TimeModelLocal>::Instance;
 
-    MODEL_ACCESSOR(id, long)
+    MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(tested_at, std::tm)
 
     inline static const Model::Definition Definition {
-      "id", "time_models_local", Model::ColumnTypes( { {"id", COL_TYPE(long)}, 
+      "id", "time_models_local", Model::ColumnTypes( { {"id", COL_TYPE(long long int)}, 
         {"tested_at", COL_TYPE(std::tm)} }), Model::Validations(),
       false  }; // 'false' Persists time in local zone
 

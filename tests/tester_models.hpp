@@ -6,14 +6,14 @@ class TimeModel : public Model::Instance<TimeModel> {
   public :
     using Model::Instance<TimeModel>::Instance;
 
-    MODEL_ACCESSOR(id, long)
+    MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(tested_at, std::tm)
 
     inline static const Model::Definition Definition {
       "id",
       "time_models", 
       Model::ColumnTypes( { 
-        {"id",        COL_TYPE(long)},
+        {"id",        COL_TYPE(long long int)},
         {"tested_at", COL_TYPE(std::tm)}
       }),
       Model::Validations()
@@ -31,21 +31,21 @@ class ValidationModel : public Model::Instance<ValidationModel> {
   public :
     using Model::Instance<ValidationModel>::Instance;
 
-    MODEL_ACCESSOR(id, long)
+    MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(email, std::string)
     MODEL_ACCESSOR(is_lazy, int)
     MODEL_ACCESSOR(is_company_admin, int)
-    MODEL_ACCESSOR(favorite_number, long)
-    MODEL_ACCESSOR(company_id, long)
+    MODEL_ACCESSOR(favorite_number, long long int)
+    MODEL_ACCESSOR(company_id, long long int)
 
     inline static const Model::Definition Definition {
       "id",
       "validation_models", 
       Model::ColumnTypes( { 
-        {"id",      COL_TYPE(long)},
+        {"id",      COL_TYPE(long long int)},
         {"email",   COL_TYPE(std::string)},
-        {"favorite_number", COL_TYPE(long)},
-        {"company_id", COL_TYPE(long)},
+        {"favorite_number", COL_TYPE(long long int)},
+        {"company_id", COL_TYPE(long long int)},
         {"is_company_admin", COL_TYPE(int)},
         {"is_lazy", COL_TYPE(int)}
       }),
@@ -87,13 +87,13 @@ class TesterModel : public Model::Instance<TesterModel> {
   public:
     using Model::Instance<TesterModel>::Instance;
 
-    MODEL_ACCESSOR(id, long)
+    MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(first_name, std::string)
     MODEL_ACCESSOR(last_name, std::string)
     MODEL_ACCESSOR(email, std::string)
     MODEL_ACCESSOR(password, std::string)
-    MODEL_ACCESSOR(favorite_number, long)
-    MODEL_ACCESSOR(unlucky_number, long)
+    MODEL_ACCESSOR(favorite_number, long long int)
+    MODEL_ACCESSOR(unlucky_number, long long int)
     MODEL_ACCESSOR(double_test, double)
     MODEL_ACCESSOR(ulong_test, unsigned long)
     MODEL_ACCESSOR(int_test, int)
@@ -105,13 +105,13 @@ class TesterModel : public Model::Instance<TesterModel> {
       "id",
       "tester_models", 
       Model::ColumnTypes({
-        {"id",              COL_TYPE(long)},
+        {"id",              COL_TYPE(long long int)},
         {"first_name",      COL_TYPE(std::string)},
         {"last_name",       COL_TYPE(std::string)},
         {"email",           COL_TYPE(std::string)},
         {"password",        COL_TYPE(std::string)},
-        {"favorite_number", COL_TYPE(long)},
-        {"unlucky_number",  COL_TYPE(long)},
+        {"favorite_number", COL_TYPE(long long int)},
+        {"unlucky_number",  COL_TYPE(long long int)},
         {"double_test",     COL_TYPE(double)},
         {"ulong_test",      COL_TYPE(unsigned long)},
         {"int_test",        COL_TYPE(int)},
