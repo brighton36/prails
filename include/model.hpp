@@ -701,24 +701,29 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
         case soci::dt_double: val = r.get<double>(i); break;
         case soci::dt_integer: val = r.get<int>(i); break;
         case soci::dt_unsigned_long_long: val = r.get<unsigned long>(i); break;
-        case soci::dt_long_long: val = r.get<long>(i); break;
-        case soci::dt_date:
-          // NOTE: Soci provides us local tm's. Here, we're going to strip all
-          // zone information, and return the tm with the provided datetime, 
-          // but with the zone set to UTC.
-
-          std::tm tm_from_soci = r.get<std::tm>(i);
-          time_t t_from_soci;
-          std::tm ret;
-          if (T::Definition.is_persisting_in_utc) {
-            t_from_soci = timegm(&tm_from_soci);
-            memcpy(&ret, gmtime(&t_from_soci), sizeof(tm));
-          } else {
-            t_from_soci = mktime(&tm_from_soci);
-            memcpy(&ret, localtime(&t_from_soci), sizeof(tm));
+        case soci::dt_long_long : {
+            long long int lret = r.get<long long>(i);
+            val = (long) lret; // TODO: This will... clip
           }
-          val = ret; 
-          break;
+          break; 
+        case soci::dt_date : {
+            // NOTE: Soci provides us local tm's. Here, we're going to strip all
+            // zone information, and return the tm with the provided datetime, 
+            // but with the zone set to UTC.
+
+            std::tm tm_from_soci = r.get<std::tm>(i);
+            time_t t_from_soci;
+            std::tm tm_to_ret;
+            if (T::Definition.is_persisting_in_utc) {
+              t_from_soci = timegm(&tm_from_soci);
+              memcpy(&tm_to_ret, gmtime(&t_from_soci), sizeof(tm));
+            } else {
+              t_from_soci = mktime(&tm_from_soci);
+              memcpy(&tm_to_ret, localtime(&t_from_soci), sizeof(tm));
+            }
+            val = tm_to_ret; 
+          }
+          break; 
       }
       ret[key] = val;
     }
