@@ -64,7 +64,7 @@ void Controller::RestInstance<U,T>::Routes(
   };
 
   if (offers_action("index"))
-    Get(r, rp, bind("index", &RestInstance<U,T>::index, controller));
+    Get(r, rp, bind("index", &U::index, controller));
   if (offers_action("read"))
     Get(r, rp+"/:id", bind("read", &RestInstance<U,T>::read, controller));
   if (offers_action("create"))
