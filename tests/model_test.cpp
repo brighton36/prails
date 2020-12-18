@@ -381,11 +381,11 @@ TEST_F(TesterModelTest, test_select_and_count_via_record_type) {
 TEST_F(TesterModelTest, test_null_in_record) {
   // Ensure that null values are properly translated...
   auto is_nulls = TesterModel::Select(
-    "select 'is null works' where :test_value is null", 
+    "select 'is null works' as result where :test_value is null", 
     Model::Record({ {"test_value", nullopt} }));
 
   ASSERT_EQ(is_nulls.size(), 1);
-  EXPECT_EQ(*is_nulls[0].recordGet("test_value"]), "is null works");
+  EXPECT_EQ(get<string>(*is_nulls[0].recordGet("result")), "is null works");
 }
 
 TEST_F(TesterModelTest, test_validator_not_null) {
