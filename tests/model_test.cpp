@@ -46,6 +46,25 @@ class TesterModelTest : public PrailsControllerTest {
 
     return string();
   }
+
+  void create_one_hundred_hendersons() {
+    for (unsigned int i = 0; i<100; i++) {
+      TesterModel model_one(john_smith_record);
+      model_one.first_name("John"+to_string(i));
+      model_one.last_name("Henderson");
+      model_one.email("jhenderson@yahoo.com");
+      ASSERT_NO_THROW(model_one.save());
+    }
+  }
+
+  void create_one_hundred_smiths() {
+    for (unsigned int i = 0; i<100; i++) {
+      TesterModel model_one(john_smith_record);
+      model_one.first_name("John"+to_string(i));
+      model_one.last_name("Smith");
+      ASSERT_NO_THROW(model_one.save());
+    }
+  }
 };
 
 TEST_F(TesterModelTest, getters_and_setters) {
@@ -128,7 +147,7 @@ TEST_F(TesterModelTest, time_column) {
   // NOTE: For reasons unknown, it seems that soci has a bug here when we use
   //       soci to handle the id. So, I'll just use fmt here for now.
   auto tester_models = TimeModel::Select( fmt::format( 
-    "select *, tested_at as other_at, {} as tested_at_string from time_models where id = :id",
+    "select *, tested_at as other_at, {} as tested_at_string from time_models where id = :1",
     (DatabaseDriver() == "mysql") ? 
       "DATE_FORMAT(tested_at, '%Y-%m-%d %H:%i:%S')" :
       "strftime('%Y-%m-%d %H:%M:%S',tested_at)"), 
@@ -173,6 +192,8 @@ TEST_F(TesterModelTest, insert_and_load) {
   EXPECT_EQ(retrieved.unlucky_number(), 3);
   EXPECT_EQ(retrieved.is_enthusiastic(), true);
   EXPECT_EQ(retrieved.is_lazy(), false);
+
+  EXPECT_NO_THROW(retrieved.remove());
 }
 
 TEST_F(TesterModelTest, insert_and_update) {
@@ -212,6 +233,8 @@ TEST_F(TesterModelTest, insert_and_update) {
   EXPECT_EQ(retrieved_again.first_name(), "Johnathan");
   EXPECT_EQ(retrieved_again.last_name(), "Smitheroonie");
   EXPECT_EQ(retrieved_again.email(), nullopt);
+
+  EXPECT_NO_THROW(retrieved_again.remove());
 }
 
 TEST_F(TesterModelTest, test_missing_record) {
@@ -250,6 +273,8 @@ TEST_F(TesterModelTest, test_numeric_store_retrieve_limits) {
   retrieve_model = *TesterModel::Find(inserted_id);
   EXPECT_EQ(*retrieve_model.double_test(), -1*9.22337203685478e+18);
   EXPECT_EQ(*retrieve_model.int_test(), -1*numeric_limits<int>::max());
+
+  EXPECT_NO_THROW(retrieve_model.remove());
 }
 
 TEST(model_base_test, invalid_type_errors) {
@@ -283,36 +308,84 @@ TEST_F(TesterModelTest, test_delete) {
 }
 
 TEST_F(TesterModelTest, test_select_and_count) {
-  for (unsigned int i = 0; i<100; i++) {
-    TesterModel model_one(john_smith_record);
-    model_one.first_name("John"+to_string(i));
-    model_one.last_name("Henderson");
-    EXPECT_NO_THROW(model_one.save());
-  }
+  create_one_hundred_hendersons();
+  create_one_hundred_smiths();
 
   long henderson_count = TesterModel::Count(
-    "select count(*) from tester_models where last_name = :last_name and email = :email", 
-      (string) "Henderson", (string) "jsmith@google.com");
+    "select count(*) from tester_models where last_name = :1 and email = :2", 
+      (string) "Henderson", (string) "jhenderson@yahoo.com");
 
   EXPECT_EQ(henderson_count, 100);
 
   long davidson_count = TesterModel::Count(
-    "select count(*) from tester_models where last_name = :lastname", (string) "Davidson");
+    "select count(*) from tester_models where last_name = :1", (string) "Davidson");
+
+  EXPECT_EQ(davidson_count, 0);
+
+  auto hendersons = TesterModel::Select(
+    "select * from tester_models where last_name = :1 and email = :2", 
+    (string) "Henderson", (string) "jhenderson@yahoo.com");
+
+  ASSERT_EQ(hendersons.size(), 100);
+  EXPECT_EQ(hendersons[0].first_name(), "John0");
+  EXPECT_EQ(hendersons[99].first_name(), "John99");
+
+  auto davidsons = TesterModel::Select(
+    "select * from tester_models where last_name = :1", (string) "Davidson");
+
+  EXPECT_EQ(davidsons.size(), 0);
+
+  auto number_deleted = TesterModel::Execute("delete from tester_models");
+  EXPECT_EQ(number_deleted, 200);
+}
+
+TEST_F(TesterModelTest, test_select_and_count_via_record_type) {
+  create_one_hundred_hendersons();
+  create_one_hundred_smiths();
+
+  unsigned long henderson_count = TesterModel::Count(
+    "select count(*) from tester_models where last_name = :last_name and email = :email", 
+    Model::Record({ {"last_name", "Henderson"}, {"email", "jhenderson@yahoo.com"} }));
+
+  EXPECT_EQ(henderson_count, 100);
+
+  unsigned long davidson_count = TesterModel::Count(
+    "select count(*) from tester_models where last_name = :lastname", 
+    Model::Record({ {"last_name", "Henderson"} }));
 
   EXPECT_EQ(davidson_count, 0);
 
   auto hendersons = TesterModel::Select(
     "select * from tester_models where last_name = :last_name and email = :email", 
-    (string) "Henderson", (string) "jsmith@google.com");
+    Model::Record({ {"email", "jhenderson@yahoo.com"}, {"last_name", "Henderson"} }));
 
-  EXPECT_EQ(hendersons.size(), 100);
+  ASSERT_EQ(hendersons.size(), 100);
   EXPECT_EQ(hendersons[0].first_name(), "John0");
   EXPECT_EQ(hendersons[99].first_name(), "John99");
 
   auto davidsons = TesterModel::Select(
-    "select * from tester_models where last_name = :last_name", (string) "Davidson");
+    "select * from tester_models where last_name = :last_name", 
+    Model::Record({ {"last_name", "Davidson"} }));
 
   EXPECT_EQ(davidsons.size(), 0);
+
+  auto number_deleted = TesterModel::Execute("delete from tester_models");
+  EXPECT_EQ(number_deleted, 200);
+}
+
+// This is mostly... bizarre. Since (sqlite, others?) doesnt support "= NULL" 
+// we can't actually select 'where last_name = ?'. But, I wanted to test that
+// the soci::to_base translates nullopt into NULL correctly, at least. So, I
+// came up with this for now.... I guess it's kind of meaningless, but, it 
+// at least documents the behavior...
+TEST_F(TesterModelTest, test_null_in_record) {
+  // Ensure that null values are properly translated...
+  auto is_nulls = TesterModel::Select(
+    "select 'is null works' where :test_value is null", 
+    Model::Record({ {"test_value", nullopt} }));
+
+  ASSERT_EQ(is_nulls.size(), 1);
+  EXPECT_EQ(*is_nulls[0].recordGet("test_value"]), "is null works");
 }
 
 TEST_F(TesterModelTest, test_validator_not_null) {

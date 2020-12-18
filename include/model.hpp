@@ -21,10 +21,10 @@
 // https://stackoverflow.com/questions/9065081/how-do-i-get-the-argument-types-of-a-function-pointer-in-a-variadic-template-cla
 #define MODEL_ACCESSOR(name, type) \
   std::optional<type> name() { \
-    std::optional<Model::RecordValue> val = recordGet(#name); \
+    Model::RecordValueOpt val = recordGet(#name); \
     return (val) ? std::optional<type>(std::get<type>(*val)) : std::nullopt; \
   }; \
-  void name(const std::optional<Model::RecordValue> &val) { recordSet(#name, val); }; \
+  void name(const Model::RecordValueOpt &val) { recordSet(#name, val); }; \
 
 #define COL_TYPE(type) variant_index<Model::RecordValue, type>()
 
@@ -43,10 +43,14 @@ namespace Model {
   class Definition;
 
   typedef std::map<std::string, std::size_t> ColumnTypes;
+
   typedef std::variant<std::string,std::tm,double,int,unsigned long,long long int> RecordValue;
-  typedef std::map<std::string, std::optional<RecordValue>> Record;
+  typedef std::optional<RecordValue> RecordValueOpt;
+  typedef std::map<std::string, RecordValueOpt> Record;
+
   typedef std::optional<std::pair<std::optional<std::string>, std::string>> RecordError;
   typedef std::map<std::optional<std::string>, std::vector<std::string>> RecordErrors;
+
   typedef std::pair<std::string,Record> Conditional;
   typedef std::function<std::optional<Conditional>(Model::Record)> AddConditionals;
 
@@ -65,7 +69,7 @@ namespace Model {
       }
       bool hasValue(Model::Record &r, std::size_t of_type) const {
         if (r.find(column) == r.end()) return false;
-        std::optional<RecordValue> val = r[column];
+        RecordValueOpt val = r[column];
         return ((val) && (val.value().index() == of_type));
       }
       RecordError error(const std::string &message) const {
@@ -166,8 +170,8 @@ namespace Model {
       void remove();
       void markDirty();
       Model::RecordErrors errors();
-      std::optional<Model::RecordValue> recordGet(const std::string&);
-      void recordSet(const std::string&, const std::optional<Model::RecordValue>&);
+      Model::RecordValueOpt recordGet(const std::string&);
+      void recordSet(const std::string&, const Model::RecordValueOpt&);
       std::vector<std::string> recordKeys();
       std::vector<std::string> modelKeys();
 
@@ -177,10 +181,16 @@ namespace Model {
       static void Remove(std::string, long long int);
       static std::optional<T> Find(long long int);
       static std::optional<T> Find(std::string, Model::Record);
+
       template <typename... Args> 
       static std::vector<T> Select(std::string, Args...);
+
       template <typename... Args> 
       static unsigned long Count(std::string, Args...);
+
+      template <typename... Args> 
+      static long long Execute(std::string, Args...);
+
       static void CreateTable(std::vector<std::pair<std::string,std::string>>);
       static void DropTable();
   };
@@ -354,35 +364,14 @@ namespace soci {
     static void to_base(Model::Record * record,values & v, indicator & ind) {
       for (const auto &p: *record) {
         std::string key = p.first;
-        std::optional<Model::RecordValue> record_val = p.second;
+        Model::RecordValueOpt record_val = p.second;
 
         if (record_val.has_value())
-          std::visit([&key, &v](auto&& typeA) {
-            using U = std::decay_t<decltype(typeA)>;
-            v.set<U>(key, typeA, i_ok);
-          }, record_val.value());
+          std::visit([&key, &v](auto&& typeA) {v.set(key, typeA, i_ok);}, 
+            record_val.value());
         else
           v.set(key, 0, i_null);
       }
-
-      ind = i_ok;
-    }
-  };
-
-  template<>
-  struct type_conversion<std::optional<Model::RecordValue> *> {
-    typedef values base_type;
-    static void from_base(values const &, indicator, 
-      std::optional<Model::RecordValue> *) {}
-    static void to_base(std::optional<Model::RecordValue> * record_val, 
-      values & v, indicator & ind) {
-      if (record_val->has_value())
-        std::visit([&v](auto&& typeA) {
-          using U = std::decay_t<decltype(typeA)>;
-          v.set<U>(typeA, i_ok);
-        }, record_val->value());
-      else
-        v.set(0, i_null);
 
       ind = i_ok;
     }
@@ -398,13 +387,52 @@ namespace soci {
         auto record_val = m->recordGet(key);
 
         if (record_val)
-          std::visit([&key, &record_val, &v](auto&& typeA) {
-            using U = std::decay_t<decltype(typeA)>;
-            v.set(key, std::get<U>(record_val.value()), i_ok);
-          }, (*record_val));
+          std::visit([&key, &v](auto&& typeA) {v.set(key, typeA, i_ok);}, 
+            record_val.value());
         else
           v.set(key, 0, i_null);
       }
+
+      ind = i_ok;
+    }
+  };
+
+  /*
+  // The goal here, would have been to support vector<Model::RecordValue> 
+  // parameters. but, seemingly, this breaks soci.
+  template<>
+  struct type_conversion<Model::RecordValue> {
+    typedef values base_type;
+    static void from_base(values const &, indicator, Model::RecordValue) {}
+    static void to_base(Model::RecordValue recordval,values & v, indicator & ind) {
+      // TODO: this causes the "Failure to bind on bulk operations"
+      //       and if we provide a key, it seems to work... 
+      //       I may have to re-write this to specify vector<Model::RecordValue> ...
+      //       ...
+      //       https://github.com/SOCI/soci/blob/master/src/backends/sqlite3/statement.cpp
+      //       or this: https://wiki.ubuntu.com/Debug%20Symbol%20Packages
+      std::visit([&v](auto&& typeA) { 
+        using U = std::decay_t<decltype(typeA)>;
+        v.operator<<<U>(typeA);
+      }, recordval);
+      ind = i_ok;
+    }
+  };
+  */
+
+  template<>
+  struct type_conversion<Model::Record> {
+    typedef values base_type;
+    static void from_base(values const &, indicator, Model::Record) {}
+    static void to_base(Model::Record provided_map,values & v, indicator & ind) {
+      std::for_each(provided_map.begin(), provided_map.end(), 
+        [&](const auto &p) { 
+          if (p.second.has_value())
+            std::visit([&p, &v](auto&& typeA) {v.set(p.first, typeA, i_ok);}, 
+              p.second.value()); 
+          else
+            v.set(p.first, 0, i_null);
+        });
 
       ind = i_ok;
     }
@@ -504,7 +532,7 @@ Model::RecordErrors Model::Instance<T>::errors() {
 }
 
 template <class T>
-std::optional<Model::RecordValue> Model::Instance<T>::recordGet(const std::string &col) {
+Model::RecordValueOpt Model::Instance<T>::recordGet(const std::string &col) {
   if ( (record.count(col) == 0) || (!record[col].has_value()) )
     return std::nullopt;
 
@@ -614,7 +642,7 @@ void Model::Instance<T>::remove() {
 }
 
 template <class T>
-void Model::Instance<T>::recordSet(const std::string &col, const std::optional<Model::RecordValue> &val) {
+void Model::Instance<T>::recordSet(const std::string &col, const Model::RecordValueOpt &val) {
   // First we'll mark the record state:
   isDirty_ = true;
   isValid_ = std::nullopt;
@@ -806,11 +834,11 @@ std::vector<T> Model::Instance<T>::Select(std::string query, Args... args) {
   return ret;
 }
 
-template <class T>
+template <class T> 
 template <typename... Args> 
 unsigned long Model::Instance<T>::Count(std::string query, Args... args){
   soci::session sql = ModelFactory::getSession("default");
-  long count;
+  unsigned long count;
 
   soci::statement st(sql);
 
@@ -826,6 +854,25 @@ unsigned long Model::Instance<T>::Count(std::string query, Args... args){
   if (!got_data) throw ModelException("No data returned for count query");
 
   return count;
+}
+
+template <class T> 
+template <typename... Args> 
+long long Model::Instance<T>::Execute(std::string query, Args... args){
+  soci::session sql = ModelFactory::getSession("default");
+  soci::statement st(sql);
+
+  Model::Log(query);
+  ((void) st.exchange(soci::use<Args>(args)), ...);
+
+  st.alloc();
+  st.prepare(query);
+  st.define_and_bind();
+  st.execute(true);
+
+  //if (!got_data) throw ModelException("No data returned for execute query");
+
+  return st.get_affected_rows();
 }
 
 template <class T>
