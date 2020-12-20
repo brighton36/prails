@@ -55,11 +55,15 @@ class Task : public Model::Instance<Task> {
 #define TASKS_REST_PREFIX "/tasks"
 #endif
 
-class TasksController : public Controller::RestInstance<TasksController, Task> { 
+#ifndef TASKS_CLASS_NAME
+#define TASKS_CLASS_NAME TasksController
+#endif
+
+class TASKS_CLASS_NAME : public Controller::RestInstance<TASKS_CLASS_NAME, Task> { 
   public:
     static constexpr std::string_view rest_prefix = { TASKS_REST_PREFIX };
 
-    using Controller::RestInstance<TasksController, Task>::RestInstance;
+    using Controller::RestInstance<TASKS_CLASS_NAME, Task>::RestInstance;
 
   private:
     Task modelDefault(std::tm tm_time) {
@@ -74,6 +78,6 @@ class TasksController : public Controller::RestInstance<TasksController, Task> {
       if (post["active"]) task.active(stoi(*post["active"]));
     }
 
-    static ControllerRegister<TasksController> reg;
+    static ControllerRegister<TASKS_CLASS_NAME> reg;
 };
 
