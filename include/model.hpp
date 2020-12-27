@@ -44,6 +44,7 @@ namespace Model {
 
   typedef std::map<std::string, std::size_t> ColumnTypes;
 
+  // NOTE: If we were to convert std::tm to chrono, we'd enable use of std::variant's ==()...
   typedef std::variant<std::string,std::tm,double,int,unsigned long,long long int> RecordValue;
   typedef std::optional<RecordValue> RecordValueOpt;
   typedef std::map<std::string, RecordValueOpt> Record;
