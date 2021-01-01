@@ -97,6 +97,7 @@ if (BUILD_TESTS)
       "-I${PROJECT_SOURCE_DIR}/include"
       "--suppress=unmatchedSuppression"
       "--suppress=unusedFunction:*lib/utilities.cpp"
+      "--suppress=unusedFunction:*lib/post_body.cpp"
       "--suppress=*:*thirdparty/*"
       "--suppress=*:*_deps/*"
 			"--inline-suppr"
@@ -121,8 +122,9 @@ add_subdirectory(lib)
 add_library(prails STATIC lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
-target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 -lsqlite3 
-  -lsoci_mysql -lmysqlclient pistache_static spdlog utilities server config_parser)
+target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 
+  -lsqlite3 -lsoci_mysql -lmysqlclient pistache_static spdlog utilities server 
+  config_parser post_body)
 
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")

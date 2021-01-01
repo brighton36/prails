@@ -1,5 +1,6 @@
 include_directories(../include)
 
+add_library(post_body STATIC post_body.cpp)
 add_library(utilities STATIC utilities.cpp)
 add_library(server STATIC server.cpp)
 add_library(controller STATIC controller.cpp)
