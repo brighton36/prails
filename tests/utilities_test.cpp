@@ -61,3 +61,8 @@ TEST(utilities_test, replace_all) {
   ASSERT_EQ( replace_all("All cats are good cats", "cats", "dogs"), "All dogs are good dogs" );
   ASSERT_EQ( replace_all("All cats are good cats", "are", "resent"), "All cats resent good cats" );
 }
+
+TEST(utilities_test, json_to_tm) {
+  tm epoch1 = iso8601_to_tm("2020-11-05T20:54:14Z");
+  ASSERT_EQ(1604609654, timegm(&epoch1));
+}

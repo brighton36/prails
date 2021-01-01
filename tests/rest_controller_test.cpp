@@ -13,7 +13,7 @@ class TaskControllerFixture : public PrailsControllerTest {
   protected:
     std::string default_name = "Test Task";
     std::string default_description = "lorem ipsum sit dolor";
-    std::string epoch_as_jsontime = "2020-04-14T16:35:12.0+0000";
+    std::string epoch_as_jsontime = "2020-04-14T16:35:12Z";
     struct tm default_epoch = DefaultEpoch();
 
     Model::Record default_task = {
@@ -116,8 +116,8 @@ TEST_F(TaskControllerFixture, create) {
   EXPECT_EQ(*task.id(), task_id);
   EXPECT_EQ(*task.name(), default_name);
   EXPECT_EQ(*task.description(), default_description);
-  EXPECT_TRUE(tm_to_json(*task.created_at()).length() > 0);
-  EXPECT_TRUE(tm_to_json(*task.updated_at()).length() > 0);
+  EXPECT_TRUE(tm_to_iso8601(*task.created_at()).length() > 0);
+  EXPECT_TRUE(tm_to_iso8601(*task.updated_at()).length() > 0);
 
   task.remove();
 }
@@ -200,8 +200,8 @@ TEST_F(TaskControllerFixture, multiple_update) {
     EXPECT_EQ(*task.active(), 1);
     EXPECT_EQ(*task.name(), "Task "+to_string(i));
     EXPECT_TRUE(*task.id() > 0);
-    EXPECT_TRUE(tm_to_json(*task.created_at()).length() > 0);
-    EXPECT_TRUE(tm_to_json(*task.updated_at()).length() > 0);
+    EXPECT_TRUE(tm_to_iso8601(*task.created_at()).length() > 0);
+    EXPECT_TRUE(tm_to_iso8601(*task.updated_at()).length() > 0);
 
     if ( (*task.id() == *tasks[1].id()) || (*task.id() == *tasks[3].id()) )
       EXPECT_EQ(*task.description(), "New Description");

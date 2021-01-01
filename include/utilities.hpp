@@ -14,6 +14,7 @@ namespace prails::utilities {
   bool has_any(std::vector<std::string> haystack, std::vector<std::string> needles);
   std::regex regex_from_string(std::string);
   std::string replace_all(const std::string &, const std::string &,const std::string &);
-  std::string tm_to_json(std::tm tm_time);
+  std::string tm_to_iso8601(std::tm);
+  std::tm iso8601_to_tm(const std::string &);
   std::pair<int,std::string> capture_system(const std::string &);
 }

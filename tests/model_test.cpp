@@ -647,7 +647,7 @@ TEST_F(TesterModelTest, to_json_test) {
   EXPECT_EQ(json["unlucky_number"], 3);
   EXPECT_EQ(json["is_enthusiastic"], 1);
   EXPECT_EQ(json["is_lazy"], 0);
-  EXPECT_EQ(json["updated_at"], tm_to_json(now));
+  EXPECT_EQ(json["updated_at"], tm_to_iso8601(now));
 
   EXPECT_EQ(json["double_test"], nullptr); 
   EXPECT_EQ(json["int_test"], nullptr); 

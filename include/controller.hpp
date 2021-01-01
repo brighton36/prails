@@ -36,7 +36,7 @@ namespace Controller {
         std::visit([&key, &json](auto&& typeA) {
           using U = std::decay_t<decltype(typeA)>;
           if constexpr(std::is_same_v<U, std::tm>)
-            json[key] = prails::utilities::tm_to_json(typeA);
+            json[key] = prails::utilities::tm_to_iso8601(typeA);
           else
             json[key] = typeA;
         }, value.value());

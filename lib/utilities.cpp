@@ -120,11 +120,18 @@ string replace_all(const string & haystack, const string & needle,
   return result;
 }
 
-string tm_to_json(tm tm_time) {
+string tm_to_iso8601(tm tm_time) {
   char buffer [80];
   long int t = timegm(&tm_time);
-  strftime(buffer,80,"%Y-%m-%dT%H:%M:%S.0%z",gmtime(&t));
+  strftime(buffer,80,"%FT%TZ",gmtime(&t));
   return string(buffer);
+}
+
+tm iso8601_to_tm(const string &time_as_string) {
+  tm ret;
+  memset(&ret, 0, sizeof(tm));
+  strptime(time_as_string.c_str(), "%FT%TZ", &ret);
+  return ret;
 }
 
 pair<int,string> capture_system(const string &cmd) {
