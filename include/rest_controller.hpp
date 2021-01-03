@@ -3,8 +3,10 @@
 #include "controller_factory.hpp"
 #include "model.hpp"
 
-namespace Controller {
+#define REST_COLUMN_UPDATE(name, type) \
+  if (post.has_scalar(#name)) model.name(post.operator[]<type>[#name]);
 
+namespace Controller {
   template <class U, class T>
   class RestInstance : public Controller::Instance {
     public:

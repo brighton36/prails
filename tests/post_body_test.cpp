@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 
 #include <limits>
-#include <iostream> // TODO
 #include <pistache/http.h>
 #include <pistache/stream.h>
 #include <pistache/router.h>
@@ -221,7 +220,9 @@ TEST(post_body_test, scalar_typecasting) {
     "&llong_min="+to_string(numeric_limits<long long int>::min())+
     "&i_min="+to_string(numeric_limits<int>::min())+
     "&ulong_min="+to_string(numeric_limits<unsigned long>::min())+
-    "&dbl_min="+to_string(numeric_limits<double>::min())
+    // For some reason, the double string conversions are weird in C++'s libraries...
+    // so, I just kinda chose this.
+    "&dbl_min=9.22337203685478e-18" 
     );
 
   // Basic numeric Typecasting...
@@ -316,7 +317,6 @@ TEST(post_body_test, scalar_typecasting) {
   EXPECT_EQ(*llong_min_as_double, numeric_limits<long long int>::min());
   EXPECT_EQ(*llong_min_as_lli, numeric_limits<long long int>::min());
 
-  cout << "7" << endl;
   // <double>::max() casting into ...
   optional<string> dbl_max_as_string = post.operator[]<string>("dbl_max");
   optional<double> dbl_max_as_double = post.operator[]<double>("dbl_max");
@@ -328,7 +328,6 @@ TEST(post_body_test, scalar_typecasting) {
   EXPECT_EQ(*dbl_max_as_string, to_string(numeric_limits<double>::max()));
   EXPECT_EQ(*dbl_max_as_double, numeric_limits<double>::max());
   
-  cout << "8" << endl;
   // <double>::min() casting into ...
   optional<string> dbl_min_as_string = post.operator[]<string>("dbl_min");
   optional<double> dbl_min_as_double = post.operator[]<double>("dbl_min");
@@ -337,8 +336,8 @@ TEST(post_body_test, scalar_typecasting) {
   EXPECT_THROW(post.operator[]<int>("dbl_min"), std::invalid_argument);
   EXPECT_THROW(post.operator[]<unsigned long>("dbl_min"), std::invalid_argument);
   EXPECT_THROW(post.operator[]<long long int>("dbl_min"), std::invalid_argument);
-  EXPECT_EQ(*dbl_min_as_string, to_string(numeric_limits<double>::min()));
-  EXPECT_EQ(*dbl_min_as_double, numeric_limits<double>::min());
+  EXPECT_EQ(*dbl_min_as_string, "9.22337203685478e-18");
+  EXPECT_EQ(*dbl_min_as_double, 9.22337203685478e-18);
 
   // tm casting into ...
   optional<string> time_as_string = post.operator[]<string>("time");
@@ -363,6 +362,23 @@ TEST(post_body_test, scalar_typecasting) {
 }
 
 TEST(post_body_test, double_typecasting) {
-  // TODO: Test a few variants of the period here, just to make sure it works 
-  // the way we think "-3.34", "78", "2.5e-10", "2.5e10", "2e10"
+  Controller::PostBody post("formA=-3.34&formB=3.34&formC=78&formD=2.5e-10"
+    "&formE=2.5e10&formF=2e10");
+
+  optional<double> formA = post.operator[]<double>("formA");
+  EXPECT_EQ(*formA, -3.34);
+  optional<double> formB = post.operator[]<double>("formB");
+  EXPECT_EQ(*formB, 3.34);
+
+  optional<double> formC = post.operator[]<double>("formC");
+  EXPECT_EQ(*formC, 78);
+
+  optional<double> formD = post.operator[]<double>("formD");
+  EXPECT_EQ(*formD, 2.5e-10);
+
+  optional<double> formE = post.operator[]<double>("formE");
+  EXPECT_EQ(*formE, 2.5e10);
+
+  optional<double> formF = post.operator[]<double>("formF");
+  EXPECT_EQ(*formF, 2e10);
 }

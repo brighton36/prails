@@ -18,7 +18,8 @@ namespace Controller {
       inline static const std::string MatchHashKey = "^([^\\]]+)\\[([^\\]]+)\\](.*)$";
       inline static const unsigned int MaxDepth = 32;
       inline static const std::string MatchUnsignedLong = "^[\\d]+$";
-      inline static const std::string MatchDouble = "^[\\-]?[\\d]+(?:|\\.[\\d]+)$";
+      inline static const std::string MatchDouble = 
+        "^[\\-]?[\\d]+(?:|\\.[\\d]+)(?:|e[\\-]?[\\d]+)$";
       inline static const std::string MatchLongLongInt = "^[\\-]?[\\d]+$";
       inline static const std::string MatchInt = "^[\\-]?[\\d]+$";
       inline static const std::string MatchIso8601 = 
@@ -93,23 +94,23 @@ namespace Controller {
           ret = s;
         else if constexpr (std::is_same_v<T, unsigned long>) {
           if (!regex_match(s, std::regex(MatchUnsignedLong)))
-            throw std::invalid_argument("key is ineligible for conversion into unsigned long");
+            throw std::invalid_argument("not an unsigned long");
           ret = std::stoul(s);
         } else if constexpr (std::is_same_v<T, double>) {
           if (!regex_match(s, std::regex(MatchDouble)))
-            throw std::invalid_argument("key is ineligible for conversion into double");
+            throw std::invalid_argument("not a double");
           ret = std::stod(s);
         } else if constexpr (std::is_same_v<T, long long int>) {
           if (!regex_match(s, std::regex(MatchLongLongInt)))
-            throw std::invalid_argument("key is ineligible for conversion into long long int");
+            throw std::invalid_argument("not a long long int");
           ret = std::stoll(s);
         } else if constexpr (std::is_same_v<T, int>) {
           if (!regex_match(s, std::regex(MatchInt)))
-            throw std::invalid_argument("key is ineligible for conversion into int");
+            throw std::invalid_argument("not an int");
           ret = std::stoi(s);
         } else if constexpr (std::is_same_v<T, std::tm>) {
           if (!regex_match(s, std::regex(MatchIso8601)))
-            throw std::invalid_argument("key is ineligible for conversion into tm");
+            throw std::invalid_argument("not a tm");
           ret = prails::utilities::iso8601_to_tm(s);
         } else 
           // Probably this should be a static_assert(false), but we're targetting
