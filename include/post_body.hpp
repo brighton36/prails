@@ -94,23 +94,23 @@ namespace Controller {
           ret = s;
         else if constexpr (std::is_same_v<T, unsigned long>) {
           if (!regex_match(s, std::regex(MatchUnsignedLong)))
-            throw std::invalid_argument("not an unsigned long");
+            throw std::invalid_argument(fmt::format("\"{}\" not an unsigned long", key));
           ret = std::stoul(s);
         } else if constexpr (std::is_same_v<T, double>) {
           if (!regex_match(s, std::regex(MatchDouble)))
-            throw std::invalid_argument("not a double");
+            throw std::invalid_argument(fmt::format("\"{}\" not a double", key));
           ret = std::stod(s);
         } else if constexpr (std::is_same_v<T, long long int>) {
           if (!regex_match(s, std::regex(MatchLongLongInt)))
-            throw std::invalid_argument("not a long long int");
+            throw std::invalid_argument(fmt::format("\"{}\" not a long long int", key));
           ret = std::stoll(s);
         } else if constexpr (std::is_same_v<T, int>) {
           if (!regex_match(s, std::regex(MatchInt)))
-            throw std::invalid_argument("not an int");
+            throw std::invalid_argument(fmt::format("\"{}\" not an int", key));
           ret = std::stoi(s);
         } else if constexpr (std::is_same_v<T, std::tm>) {
           if (!regex_match(s, std::regex(MatchIso8601)))
-            throw std::invalid_argument("not a tm");
+            throw std::invalid_argument(fmt::format("\"{}\" not a tm", key));
           ret = prails::utilities::iso8601_to_tm(s);
         } else 
           // Probably this should be a static_assert(false), but we're targetting

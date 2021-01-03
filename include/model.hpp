@@ -568,11 +568,16 @@ void Model::Instance<T>::save() {
     for (auto &key : columns) 
       if (key != definition->pkey_column) set_pairs.push_back(key+" = :"+key);
 
-    soci::statement update = (sql.prepare << fmt::format(
+    std::string query = fmt::format(
       "update {table_name} set {update_pairs} where id = :id", 
       fmt::arg("table_name", definition->table_name),
       fmt::arg("update_pairs", prails::utilities::join(set_pairs, ", "))
-      ), soci::use(this));
+      );
+
+    soci::statement update = (sql.prepare << query, soci::use(this));
+
+		Model::Log(query);
+
     update.execute(true);
 
     // See the below note on last_insert_id. Seems like affected_rows is similarly
