@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 
+#include <limits>
+#include <iostream> // TODO
 #include <pistache/http.h>
 #include <pistache/stream.h>
 #include <pistache/router.h>
@@ -201,5 +203,166 @@ TEST(customer_controller_test, uri_decode_array) {
   post = Controller::PostBody("test=first&test=second&test=third");
   ASSERT_EQ(*post.size(), 1);
   ASSERT_EQ(*post("test"), "first");
+}
 
+TEST(post_body_test, scalar_typecasting) {
+  // I'm not sure exactly how compiler-specific this is... but, seems like its
+  // worth testing.... Though some of the results seem weird here...
+  Controller::PostBody post(
+    string("numeric=456")+
+    "&string=abc"+
+    "&time=2020-11-05T20%3A54%3A14Z"+ // 2020-11-05T20:54:14Z
+
+    "&llong_max="+to_string(numeric_limits<long long int>::max())+
+    "&i_max="+to_string(numeric_limits<int>::max())+
+    "&ulong_max="+to_string(numeric_limits<unsigned long>::max())+
+    "&dbl_max="+to_string(numeric_limits<double>::max())+
+
+    "&llong_min="+to_string(numeric_limits<long long int>::min())+
+    "&i_min="+to_string(numeric_limits<int>::min())+
+    "&ulong_min="+to_string(numeric_limits<unsigned long>::min())+
+    "&dbl_min="+to_string(numeric_limits<double>::min())
+    );
+
+  // Basic numeric Typecasting...
+  optional<string> numeric_as_string = post.operator[]<string>("numeric");
+  optional<int> numeric_as_int = post.operator[]<int>("numeric");
+  optional<unsigned long> numeric_as_ulong = post.operator[]<unsigned long>("numeric");
+  optional<double> numeric_as_double = post.operator[]<double>("numeric");
+  optional<long long int> numeric_as_lli = post.operator[]<long long int>("numeric");
+
+  EXPECT_THROW(post.operator[]<tm>("numeric"), std::invalid_argument);
+  EXPECT_EQ(*numeric_as_string, "456");
+  EXPECT_EQ(*numeric_as_int, 456);
+  EXPECT_EQ(*numeric_as_ulong, 456);
+  EXPECT_EQ(*numeric_as_double, 456);
+  EXPECT_EQ(*numeric_as_lli, 456);
+
+  // <int>::max() casting into ...
+  optional<string> i_max_as_string = post.operator[]<string>("i_max");
+  optional<int> i_max_as_int = post.operator[]<int>("i_max");
+  optional<unsigned long> i_max_as_ulong = post.operator[]<unsigned long>("i_max");
+  optional<double> i_max_as_double = post.operator[]<double>("i_max");
+  optional<long long int> i_max_as_lli = post.operator[]<long long int>("i_max");
+
+  EXPECT_THROW(post.operator[]<tm>("i_max"), std::invalid_argument);
+  EXPECT_EQ(*i_max_as_string, to_string(numeric_limits<int>::max()));
+  EXPECT_EQ(*i_max_as_int, numeric_limits<int>::max()); 
+  EXPECT_EQ(*i_max_as_ulong, numeric_limits<int>::max());
+  EXPECT_EQ(*i_max_as_double, numeric_limits<int>::max());
+  EXPECT_EQ(*i_max_as_lli, numeric_limits<int>::max());
+
+  // <int>::min() casting into ...
+  optional<string> i_min_as_string = post.operator[]<string>("i_min");
+  optional<int> i_min_as_int = post.operator[]<int>("i_min");
+  optional<double> i_min_as_double = post.operator[]<double>("i_min");
+  optional<long long int> i_min_as_lli = post.operator[]<long long int>("i_min");
+
+  EXPECT_THROW(post.operator[]<tm>("i_min"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<unsigned long>("i_min"), std::invalid_argument);
+  EXPECT_EQ(*i_min_as_string, to_string(numeric_limits<int>::min()));
+  EXPECT_EQ(*i_min_as_int, numeric_limits<int>::min()); 
+  EXPECT_EQ(*i_min_as_double, numeric_limits<int>::min());
+  EXPECT_EQ(*i_min_as_lli, numeric_limits<int>::min());
+
+  // <unsigned long>::max() casting into ...
+  optional<string> ulong_max_as_string = post.operator[]<string>("ulong_max");
+  optional<unsigned long> ulong_max_as_ulong = post.operator[]<unsigned long>("ulong_max");
+  optional<double> ulong_max_as_double = post.operator[]<double>("ulong_max");
+
+  EXPECT_THROW(post.operator[]<tm>("ulong_max"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<int>("ulong_max"), std::out_of_range);
+  EXPECT_THROW(post.operator[]<long long int>("ulong_max"), std::out_of_range);
+  EXPECT_EQ(*ulong_max_as_string, to_string(numeric_limits<unsigned long>::max()));
+  EXPECT_EQ(*ulong_max_as_ulong, numeric_limits<unsigned long>::max());
+  EXPECT_EQ(*ulong_max_as_double, numeric_limits<unsigned long>::max());
+
+  // <unsigned long>::min() casting into ...
+  optional<string> ulong_min_as_string = post.operator[]<string>("ulong_min");
+  optional<unsigned long> ulong_min_as_ulong = post.operator[]<unsigned long>("ulong_min");
+  optional<double> ulong_min_as_double = post.operator[]<double>("ulong_min");
+  optional<int> ulong_min_as_int = post.operator[]<int>("ulong_min");
+  optional<long long int> ulong_min_as_lli = post.operator[]<long long int>("ulong_min");
+
+  EXPECT_THROW(post.operator[]<tm>("ulong_min"), std::invalid_argument);
+  EXPECT_EQ(*ulong_min_as_string, to_string(numeric_limits<unsigned long>::min()));
+  EXPECT_EQ(*ulong_min_as_ulong, numeric_limits<unsigned long>::min());
+  EXPECT_EQ(*ulong_min_as_double, numeric_limits<unsigned long>::min());
+  EXPECT_EQ(*ulong_min_as_int, numeric_limits<unsigned long>::min());
+  EXPECT_EQ(*ulong_min_as_lli, numeric_limits<unsigned long>::min());
+
+  // <long long int>::max() casting into ...
+  optional<string> llong_max_as_string = post.operator[]<string>("llong_max");
+  optional<unsigned long> llong_max_as_ulong = post.operator[]<unsigned long>("llong_max");
+  optional<double> llong_max_as_double = post.operator[]<double>("llong_max");
+  optional<long long int> llong_max_as_lli = post.operator[]<long long int>("llong_max");
+
+  EXPECT_THROW(post.operator[]<tm>("llong_max"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<int>("llong_max"), std::out_of_range);
+  EXPECT_EQ(*llong_max_as_string, to_string(numeric_limits<long long int>::max()));
+  EXPECT_EQ(*llong_max_as_ulong, numeric_limits<long long int>::max());
+  EXPECT_EQ(*llong_max_as_double, numeric_limits<long long int>::max());
+  EXPECT_EQ(*llong_max_as_lli, numeric_limits<long long int>::max());
+
+  // <long long int>::min() casting into ...
+  optional<string> llong_min_as_string = post.operator[]<string>("llong_min");
+  optional<double> llong_min_as_double = post.operator[]<double>("llong_min");
+  optional<long long int> llong_min_as_lli = post.operator[]<long long int>("llong_min");
+
+  EXPECT_THROW(post.operator[]<tm>("llong_min"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<int>("llong_min"), std::out_of_range);
+  EXPECT_THROW(post.operator[]<unsigned long>("llong_min"), std::invalid_argument);
+  EXPECT_EQ(*llong_min_as_string, to_string(numeric_limits<long long int>::min()));
+  EXPECT_EQ(*llong_min_as_double, numeric_limits<long long int>::min());
+  EXPECT_EQ(*llong_min_as_lli, numeric_limits<long long int>::min());
+
+  cout << "7" << endl;
+  // <double>::max() casting into ...
+  optional<string> dbl_max_as_string = post.operator[]<string>("dbl_max");
+  optional<double> dbl_max_as_double = post.operator[]<double>("dbl_max");
+  
+  EXPECT_THROW(post.operator[]<tm>("dbl_max"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<int>("dbl_max"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<unsigned long>("dbl_max"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<long long int>("dbl_max"), std::invalid_argument);
+  EXPECT_EQ(*dbl_max_as_string, to_string(numeric_limits<double>::max()));
+  EXPECT_EQ(*dbl_max_as_double, numeric_limits<double>::max());
+  
+  cout << "8" << endl;
+  // <double>::min() casting into ...
+  optional<string> dbl_min_as_string = post.operator[]<string>("dbl_min");
+  optional<double> dbl_min_as_double = post.operator[]<double>("dbl_min");
+  
+  EXPECT_THROW(post.operator[]<tm>("dbl_min"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<int>("dbl_min"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<unsigned long>("dbl_min"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<long long int>("dbl_min"), std::invalid_argument);
+  EXPECT_EQ(*dbl_min_as_string, to_string(numeric_limits<double>::min()));
+  EXPECT_EQ(*dbl_min_as_double, numeric_limits<double>::min());
+
+  // tm casting into ...
+  optional<string> time_as_string = post.operator[]<string>("time");
+  optional<tm> time_as_tm = post.operator[]<tm>("time");
+
+  EXPECT_THROW(post.operator[]<int>("time"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<unsigned long>("time"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<double>("time"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<long long int>("time"), std::invalid_argument);
+  EXPECT_EQ(prails::utilities::tm_to_iso8601(*time_as_tm), "2020-11-05T20:54:14Z");
+  EXPECT_EQ(*time_as_string, "2020-11-05T20:54:14Z");
+  
+  // Typecasting characters to number types...
+  optional<string> string_as_string = post.operator[]<string>("string");
+
+  EXPECT_THROW(post.operator[]<tm>("string"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<int>("string"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<unsigned long>("string"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<double>("string"), std::invalid_argument);
+  EXPECT_THROW(post.operator[]<long long int>("string"), std::invalid_argument);
+  EXPECT_EQ(*string_as_string, "abc");
+}
+
+TEST(post_body_test, double_typecasting) {
+  // TODO: Test a few variants of the period here, just to make sure it works 
+  // the way we think "-3.34", "78", "2.5e-10", "2.5e10", "2e10"
 }

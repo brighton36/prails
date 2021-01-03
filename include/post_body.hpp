@@ -3,8 +3,12 @@
 #include <vector>
 #include <map>
 
+#include "exceptions.hpp"
+#include "utilities.hpp"
+
 namespace Controller {
   class PostBody {
+
     public:
       typedef std::vector<std::string> Array;
       typedef Controller::PostBody Hash;
@@ -13,12 +17,22 @@ namespace Controller {
       inline static const std::string MatchArrayKey = "^(.*)\\[\\]$";
       inline static const std::string MatchHashKey = "^([^\\]]+)\\[([^\\]]+)\\](.*)$";
       inline static const unsigned int MaxDepth = 32;
+      inline static const std::string MatchUnsignedLong = "^[\\d]+$";
+      inline static const std::string MatchDouble = "^[\\-]?[\\d]+(?:|\\.[\\d]+)$";
+      inline static const std::string MatchLongLongInt = "^[\\-]?[\\d]+$";
+      inline static const std::string MatchInt = "^[\\-]?[\\d]+$";
+      inline static const std::string MatchIso8601 = 
+        "^[\\d]{4}\\-[\\d]{2}\\-[\\d]{2}T[\\d]{2}\\:[\\d]{2}\\:[\\d]{2}Z$";
 
       // NOTE: The depth exists mostly as a failsafe. It's conceivable that an 
       // attacker can cause us problems by recursing the input to a significant depth.
       explicit PostBody(unsigned int depth = 0) : depth(depth) {}
       explicit PostBody(const std::string &, unsigned int depth = 0);
       PostBody::Array keys();
+      bool has_key(const std::string &);
+      bool has_scalar(const std::string &);
+      bool has_hash(const std::string &);
+      bool has_collection(const std::string &);
       void set(const std::string &, const std::string &);
 
       template <typename... Args>
@@ -48,14 +62,62 @@ namespace Controller {
         }
       }
 
-      template <typename... Args>
-      std::optional<std::string> operator() (std::string key, Args... args) {
+      template <typename T = std::string, typename... Args>
+      std::optional<T> operator() (const std::string &key, Args... args) {
         if (hashes.count(key)) return hashes[key](args...);
         return std::nullopt;
       }
-      std::optional<std::string> operator() (std::string key, int offset);
-      std::optional<std::string> operator() (const std::string &);
-      std::optional<std::string> operator[] (const std::string &);
+
+      template <typename T = std::string>
+      std::optional<T> operator() (const std::string &key, int offset) {
+        if (!has_collection(key)) return std::nullopt;
+        try {
+          return std::make_optional(collections[key].at(offset));
+        } catch (const std::out_of_range& ) { return std::nullopt; }
+      }
+
+      template <typename T = std::string>
+      std::optional<T> operator() (const std::string &key) {
+        return (has_scalar(key)) ? operator[]<T>(key) : std::nullopt;
+      }
+
+      // This method only returns a scalar
+      template <typename T = std::string>
+      std::optional<T> operator[](const std::string &key) {
+        if (!has_scalar(key)) return std::nullopt;
+
+        std::string s = scalars[key];
+        T ret;
+
+        if constexpr (std::is_same_v<T, std::string>)
+          ret = s;
+        else if constexpr (std::is_same_v<T, unsigned long>) {
+          if (!regex_match(s, std::regex(MatchUnsignedLong)))
+            throw std::invalid_argument("key is ineligible for conversion into unsigned long");
+          ret = std::stoul(s);
+        } else if constexpr (std::is_same_v<T, double>) {
+          if (!regex_match(s, std::regex(MatchDouble)))
+            throw std::invalid_argument("key is ineligible for conversion into double");
+          ret = std::stod(s);
+        } else if constexpr (std::is_same_v<T, long long int>) {
+          if (!regex_match(s, std::regex(MatchLongLongInt)))
+            throw std::invalid_argument("key is ineligible for conversion into long long int");
+          ret = std::stoll(s);
+        } else if constexpr (std::is_same_v<T, int>) {
+          if (!regex_match(s, std::regex(MatchInt)))
+            throw std::invalid_argument("key is ineligible for conversion into int");
+          ret = std::stoi(s);
+        } else if constexpr (std::is_same_v<T, std::tm>) {
+          if (!regex_match(s, std::regex(MatchIso8601)))
+            throw std::invalid_argument("key is ineligible for conversion into tm");
+          ret = prails::utilities::iso8601_to_tm(s);
+        } else 
+          // Probably this should be a static_assert(false), but we're targetting
+          // C++17 ...
+          throw PostBodyException("Invalid typename requested of PostBody::operator[]");
+
+        return std::make_optional<T>(ret);
+      }
 
     private:
       unsigned int depth;

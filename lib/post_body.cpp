@@ -51,43 +51,27 @@ void PostBody::set(const string &key, const string &value) {
   if (regex_search(key, matches, regex(MatchHashKey))) {
     // Hash key parsed:
     if ((matches[1].length() > 0) && 
-      (scalars.count(matches[1]) == 0) && (collections.count(matches[1]) == 0) &&
+      (!has_scalar(matches[1])) && (!has_collection(matches[1])) &&
       (depth < MaxDepth)
     ) {
-      if (hashes.count(matches[1]) == 0) hashes[matches[1]] = PostBody(depth+1);
+      if (!has_hash(matches[1])) hashes[matches[1]] = PostBody(depth+1);
       hashes[matches[1]].set(string(matches[2])+string(matches[3]), value); 
     }
   } else if (regex_search(key, matches, regex(MatchArrayKey))) {
     // Collections key parsed:
     if ((matches[1].length() > 0) && 
-      (scalars.count(matches[1]) == 0) && (hashes.count(matches[1]) == 0)
+      (!has_scalar(matches[1])) && (!has_hash(matches[1]))
     )
       collections[matches[1]].push_back(value);
   } else {
     // Scalar key parsed:
-    if ((collections.count(key) == 0) && (hashes.count(key) == 0) && scalars.count(key) == 0)
-      scalars[key] = value;
+    if (!has_key(key)) scalars[key] = value;
   }
 }
 
-optional<string> PostBody::operator[](const string &key) {
-  return (scalars.count(key)) ? make_optional(scalars[key]) : nullopt;        
-}
-
-optional<string> PostBody::operator() (string key, int offset) {
-  if (collections.count(key) == 0) return nullopt;
-  try {
-    return make_optional(collections[key].at(offset));
-  } catch (const out_of_range& ) { return nullopt; }
-}
-
-optional<string> PostBody::operator() (const string &key) {
-  return (scalars.count(key)) ? make_optional(scalars[key]) : nullopt;        
-}
-
 optional<unsigned int> PostBody::size(const string &key) {
-  if (collections.count(key)) return make_optional(collections[key].size());
-  else if (hashes.count(key)) return hashes[key].size();
+  if (has_collection(key)) return make_optional(collections[key].size());
+  else if (has_hash(key)) return hashes[key].size();
   return nullopt;
 }
 
@@ -106,4 +90,21 @@ PostBody::Array PostBody::keys() {
     ret.push_back(p.first); });
 
   return ret;
+}
+
+bool PostBody::has_key(const std::string &key) {
+  // I'm not sure that this is actually useful...
+  return (has_scalar(key) || has_hash(key) || has_collection(key));
+}
+
+bool PostBody::has_scalar(const std::string &key) {
+  return scalars.count(key) > 0; 
+}
+
+bool PostBody::has_hash(const std::string &key) {
+  return hashes.count(key) > 0; 
+}
+
+bool PostBody::has_collection(const std::string &key) {
+  return collections.count(key) > 0; 
 }
