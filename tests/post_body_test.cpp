@@ -382,3 +382,13 @@ TEST(post_body_test, double_typecasting) {
   optional<double> formF = post.operator[]<double>("formF");
   EXPECT_EQ(*formF, 2e10);
 }
+
+TEST(post_body_test, empty_typecasting) {
+  Controller::PostBody post("&time=&llong=&i=&ulong=&dbl=");
+
+  EXPECT_EQ(post.operator[]<tm>("time"), nullopt);
+  EXPECT_EQ(post.operator[]<long long int>("llong"), nullopt);
+  EXPECT_EQ(post.operator[]<int>("i"), nullopt);
+  EXPECT_EQ(post.operator[]<unsigned long>("ulong"), nullopt);
+  EXPECT_EQ(post.operator[]<double>("dbl"), nullopt);
+}

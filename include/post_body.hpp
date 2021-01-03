@@ -88,11 +88,19 @@ namespace Controller {
         if (!has_scalar(key)) return std::nullopt;
 
         std::string s = scalars[key];
+
+        // An empty string isn't a nullopt. I think this is the best we can do,
+        // even if it's an exceptional case. Because the frontend can always 
+        // omit a key, and in doing so, convey a nullopt that way..
+        if constexpr (std::is_same_v<T, std::string>)
+          return s;
+
+        // This means we're a non-string type, with an empty value
+        if (s.empty()) return std::nullopt;
+
         T ret;
 
-        if constexpr (std::is_same_v<T, std::string>)
-          ret = s;
-        else if constexpr (std::is_same_v<T, unsigned long>) {
+        if constexpr (std::is_same_v<T, unsigned long>) {
           if (!regex_match(s, std::regex(MatchUnsignedLong)))
             throw std::invalid_argument(fmt::format("\"{}\" not an unsigned long", key));
           ret = std::stoul(s);
