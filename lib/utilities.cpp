@@ -122,14 +122,14 @@ string replace_all(const string & haystack, const string & needle,
 
 string tm_to_iso8601(tm tm_time) {
   char buffer [80];
-  long int t = timegm(&tm_time);
-  strftime(buffer,80,"%FT%TZ",gmtime(&t));
+  strftime(buffer,80,(tm_time.tm_gmtoff == 0) ? "%FT%TZ" : "%FT%T%z",&tm_time);
   return string(buffer);
 }
 
 tm iso8601_to_tm(const string &time_as_string) {
   tm ret;
   memset(&ret, 0, sizeof(tm));
+  // TODO: We... may want/need to support +-offset
   strptime(time_as_string.c_str(), "%FT%TZ", &ret);
   return ret;
 }
