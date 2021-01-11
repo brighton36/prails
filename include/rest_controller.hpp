@@ -64,7 +64,7 @@ void Controller::RestInstance<U,T>::Routes(
   std::map<std::string, std::string> action_to_prefix;
 
   for(const auto &action : U::actions()) {
-    std::optional<std::string> p = prefix(action);
+    std::optional<std::string> p = U::prefix(action);
     if (p.has_value()) action_to_prefix[action] = p.value();
   }
 
