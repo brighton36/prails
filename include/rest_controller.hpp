@@ -17,7 +17,7 @@ namespace Controller {
 
       RestInstance(const std::string &, const std::string &);
       static void Routes(Pistache::Rest::Router&, std::shared_ptr<Controller::Instance>);
-      static std::string prefix();
+      static std::optional<std::string> prefix(const std::string &);
       static std::vector<std::string> actions();
 
       Controller::Response options(const Pistache::Rest::Request&);
@@ -44,11 +44,14 @@ Controller::RestInstance<U,T>::RestInstance(
   const std::string &controller_name, const std::string &views_path) : 
   Controller::Instance::Instance(controller_name, views_path) { 
 
+  // TODO: do I care to do this ...
   // This is just a courtesy to some dev (probably myself) in the future. Mostly
   // no trailing slash.
+  /*
   if (!std::regex_match(U::prefix(), std::regex("^\\/.+[^\\/]$") ))
     throw RequestException("Error in rest class prefix. "
       "Perhaps there's a trailing slash?", U::prefix());
+  */
 }
 
 template <class U, class T>
@@ -58,37 +61,82 @@ void Controller::RestInstance<U,T>::Routes(
   using namespace Pistache::Rest::Routes;
   using namespace Controller;
 
-  std::string rp = U::prefix();
-  std::vector<std::string> actions = U::actions();
+  std::map<std::string, std::string> action_to_prefix;
 
-  auto offers_action = [&actions] (std::string name) -> bool {
-    return (std::find(actions.begin(), actions.end(), name) != actions.end());
-  };
+  for(const auto &action : U::actions()) {
+    std::optional<std::string> p = prefix(action);
+    if (p.has_value()) action_to_prefix[action] = p.value();
+  }
 
-  if (offers_action("index"))
-    Get(r, rp, bind("index", &U::index, controller));
-  if (offers_action("read"))
-    Get(r, rp+"/:id", bind("read", &RestInstance<U,T>::read, controller));
-  if (offers_action("create"))
-    Post(r, rp, bind("create", &RestInstance<U,T>::create_or_update, controller));
-  if (offers_action("update"))
-    Put(r, rp+"/:id", bind("update", &RestInstance<U,T>::create_or_update, controller));
-  if (offers_action("multiple_update"))
-    Post(r, rp+"/multiple-update", 
+  if (action_to_prefix.count("index") > 0)
+    Get(r, action_to_prefix["index"], 
+      bind("index", &U::index, controller));
+  if (action_to_prefix.count("read") > 0)
+    Get(r, action_to_prefix["read"]+"/:id", 
+      bind("read", &RestInstance<U,T>::read, controller));
+  if (action_to_prefix.count("create") > 0)
+    Post(r, action_to_prefix["create"],
+      bind("create", &RestInstance<U,T>::create_or_update, controller));
+  if (action_to_prefix.count("update") > 0)
+    Put(r, action_to_prefix["update"]+"/:id",
+      bind("update", &RestInstance<U,T>::create_or_update, controller));
+  if (action_to_prefix.count("multiple_update") > 0)
+    Post(r, action_to_prefix["multiple_update"]+"/multiple-update", 
       bind("multiple_update", &RestInstance<U,T>::multiple_update, controller));
-  if (offers_action("multiple_delete"))
-    Post(r, rp+"/multiple-delete", 
+  if (action_to_prefix.count("multiple_delete") > 0)
+    Post(r, action_to_prefix["multiple_delete"]+"/multiple-delete", 
       bind("multiple_delete", &RestInstance<U,T>::multiple_delete, controller));
-  if (offers_action("delete"))
-    Delete(r, rp+"/:id", bind("del", &RestInstance<U,T>::del, controller));
+  if (action_to_prefix.count("delete") > 0)
+    Delete(r, action_to_prefix["delete"]+"/:id",
+      bind("del", &RestInstance<U,T>::del, controller));
   
   // TODO: Maybe we can just create a more clever bind above...
   //       Like: bind_response("options", CorsOkResponse(), controller)
   if ( !GetConfig().cors_allow().empty() ) {
-    Options(r, rp+"/*",
-      bind("options_actions", &RestInstance<U,T>::options, controller));
-    Options(r, rp,
-      bind("options_index", &RestInstance<U,T>::options, controller));
+    std::vector<std::string> cors_oks;
+    auto offered_cors = [&cors_oks] (std::string name) -> bool {
+      return (std::find(cors_oks.begin(), cors_oks.end(), name) != cors_oks.end());
+    };
+
+    // First we declare the non-wildcard paths
+    for (const auto &action : std::vector<std::string>({"index","create","delete"}))
+      if (action_to_prefix.count(action) > 0) {
+        std::string prefix = action_to_prefix[action];
+        if (!offered_cors(prefix)) {
+          Options(r, prefix,
+            bind("options_"+action, &RestInstance<U,T>::options, controller));
+          cors_oks.push_back(prefix);
+        }
+      }
+
+    // Now we declare the sub-prefix paths:
+    cors_oks.clear();
+
+    for (const auto &action : std::vector<std::string>({"update","read","delete"})) {
+      if (action_to_prefix.count(action) > 0) {
+        std::string prefix = action_to_prefix[action];
+        if (!offered_cors(prefix)) {
+          Options(r, prefix+"/*",
+            bind("options_"+action, &RestInstance<U,T>::options, controller));
+          cors_oks.push_back(prefix);
+        }
+      }
+    }
+
+    // These aren't * paths, but could have been covered by one of the * paths
+    // just above. In any case, if they're not, create an options:
+    for (const auto &multiple : std::vector<std::string>({"update","delete"})) {
+      std::string action = multiple+"_update";
+      if (action_to_prefix.count(action) > 0) {
+        std::string prefix = action_to_prefix[action];
+        if (!offered_cors(prefix)) {
+          Options(r, prefix+"/multiple-"+multiple,
+            bind("options_"+action, &RestInstance<U,T>::options, controller));
+          // NOTE: No benefit from pushing this onto cors_ok
+        }
+      }
+    }
+
   }
 }
 
@@ -198,8 +246,9 @@ Controller::RestInstance<U,T>::multiple_delete(const Pistache::Rest::Request& re
 }
 
 template <class U, class T>
-std::string Controller::RestInstance<U,T>::prefix() { 
-  return {U::rest_prefix.data(), U::rest_prefix.size()};
+std::optional<std::string> Controller::RestInstance<U,T>::prefix(const std::string &) { 
+  std::string rp = {U::rest_prefix.data(), U::rest_prefix.size()};
+  return std::make_optional<std::string>(rp);
 }
 
 template <class U, class T>
