@@ -128,7 +128,3 @@ target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3
 
 target_link_libraries(prails 
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
-
-#######################################################################
-# Install Components
-install(TARGETS prails COMPONENT runtime LIBRARY DESTINATION lib)
