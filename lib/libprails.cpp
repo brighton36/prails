@@ -70,7 +70,14 @@ unsigned int mode_output(ConfigParser &config, shared_ptr<spdlog::logger> logger
   logger->info("Outputting {} to {}.", url, (output.empty()) ? "STDOUT" : output);
 
   Server server(config);
-  server.startThreaded();
+  try {
+    server.startThreaded();
+  } catch (const std::runtime_error &e) {
+    // We'll assume the server is already running, in this case, and just query
+    // the existing process.
+    if (string(e.what()) != "Address already in use")
+      throw e;
+  }
 
   auto addr = Pistache::Address(config.address(), config.port());
   auto browser = httplib::Client(addr.host().c_str(), (uint16_t) addr.port());
