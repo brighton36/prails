@@ -10,6 +10,9 @@ namespace Controller {
   class PostBody {
 
     public:
+      // TODO: I suppose this would work better if we stored members as variant<Hash,Array,Scalar>
+      //       that would allow us to iterate over members via each...
+
       typedef std::vector<std::string> Array;
       typedef Controller::PostBody Hash;
 
@@ -29,7 +32,14 @@ namespace Controller {
       // attacker can cause us problems by recursing the input to a significant depth.
       explicit PostBody(unsigned int depth = 0) : depth(depth) {}
       explicit PostBody(const std::string &, unsigned int depth = 0);
-      PostBody::Array keys();
+
+      template <typename... Args>
+      Array keys(std::string key, Args... args) {
+        return (has_hash(key)) ? hashes[key].keys(args...) : Array();
+      }
+      Array keys(const std::string &);
+      Array keys();
+
       bool has_key(const std::string &);
       bool has_scalar(const std::string &);
       bool has_hash(const std::string &);
@@ -51,15 +61,15 @@ namespace Controller {
         return (hashes.count(key)) ? std::make_optional(hashes[key]) : std::nullopt;
       }
 
-      // NOTE: We're really only supporting collections here for now. If needed,
-      //       I suppose we could implement an each_pair for hashes...
       template <typename... Args>
       void each(std::string key, Args... args) {
         if constexpr (sizeof...(Args) > 1) {
-          if (hashes.count(key)) hashes[key].each(args...);
+          if (has_hash(key)) hashes[key].each(args...);
         } else {
-          if (collections.count(key)) 
+          if (has_collection(key)) 
             std::for_each(collections[key].cbegin(), collections[key].cend(), args...);
+          else
+            throw std::invalid_argument(fmt::format("\"{}\" not an array", key));
         }
       }
 

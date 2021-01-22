@@ -79,15 +79,26 @@ optional<unsigned int> PostBody::size() {
   return scalars.size()+collections.size()+hashes.size();
 }
 
+PostBody::Array PostBody::keys(const string &key) {
+  if (has_hash(key)) return hashes[key].keys();
+  return {};
+}
+
 PostBody::Array PostBody::keys() {
   PostBody::Array ret;
 
-  for_each(begin(scalars), end(scalars), [&ret](const auto &p) {
-    ret.push_back(p.first); });
-  for_each(begin(hashes), end(hashes), [&ret](const auto &p) {
-    ret.push_back(p.first); });
-  for_each(begin(collections), end(collections), [&ret](const auto &p) {
-    ret.push_back(p.first); });
+  for_each( begin(scalars), end(scalars), 
+    [&ret](const std::pair<std::string, std::string> &p) {
+      ret.push_back(p.first); 
+    });
+  for_each( begin(hashes), end(hashes), 
+    [&ret](const std::pair<std::string, PostBody::Hash> &p) {
+      ret.push_back(p.first); 
+    });
+  for_each(begin(collections), end(collections), 
+    [&ret](const std::pair<std::string, PostBody::Array> &p) {
+      ret.push_back(p.first); 
+    });
 
   return ret;
 }

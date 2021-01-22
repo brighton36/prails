@@ -7,6 +7,8 @@
 
 #include "server.hpp"
 
+#include <iostream> // todo
+
 using namespace std;
 
 TEST(post_body_test, uri_decode) {
@@ -391,4 +393,68 @@ TEST(post_body_test, empty_typecasting) {
   EXPECT_EQ(post.operator[]<int>("i"), nullopt);
   EXPECT_EQ(post.operator[]<unsigned long>("ulong"), nullopt);
   EXPECT_EQ(post.operator[]<double>("dbl"), nullopt);
+}
+
+TEST(post_body_test, search_parameters) {
+  // This was a sample from the vuecrudd people search post
+  Controller::PostBody post(
+  "rowsPerPage=20&page=1&search=&filterColumns%5B0%5D%5Bmode%5D=like&filterCol"
+  "umns%5B0%5D%5Btext%5D=Id&filterColumns%5B0%5D%5Bname%5D=id&filterColumns%5B"
+  "0%5D%5Bcolumn%5D=undefined&filterColumns%5B0%5D%5Bvalue%5D=&filterColumns%5"
+  "B1%5D%5Bmode%5D=like&filterColumns%5B1%5D%5Btext%5D=Lastname&filterColumns%"
+  "5B1%5D%5Bname%5D=lastname&filterColumns%5B1%5D%5Bcolumn%5D=lastname&filterC"
+  "olumns%5B1%5D%5Bvalue%5D=&filterColumns%5B2%5D%5Bmode%5D=like&filterColumns"
+  "%5B2%5D%5Btext%5D=Firstname&filterColumns%5B2%5D%5Bname%5D=firstname&filter"
+  "Columns%5B2%5D%5Bcolumn%5D=firstname&filterColumns%5B2%5D%5Bvalue%5D=&filte"
+  "rColumns%5B3%5D%5Bmode%5D=like&filterColumns%5B3%5D%5Btext%5D=Distinction&f"
+  "ilterColumns%5B3%5D%5Bname%5D=distinction&filterColumns%5B3%5D%5Bcolumn%5D="
+  "distinction&filterColumns%5B3%5D%5Bvalue%5D=&filterColumns%5B4%5D%5Bmode%5D"
+  "=like&filterColumns%5B4%5D%5Btext%5D=Language&filterColumns%5B4%5D%5Bname%5"
+  "D=language&filterColumns%5B4%5D%5Bcolumn%5D=language_id&filterColumns%5B4%5"
+  "D%5Bvalue%5D=&filterColumns%5B5%5D%5Bmode%5D=like&filterColumns%5B5%5D%5Bte"
+  "xt%5D=Sex&filterColumns%5B5%5D%5Bname%5D=sex&filterColumns%5B5%5D%5Bcolumn%"
+  "5D=sex_id&filterColumns%5B5%5D%5Bvalue%5D=&filterColumns%5B6%5D%5Bmode%5D=l"
+  "ike&filterColumns%5B6%5D%5Btext%5D=E-mail&filterColumns%5B6%5D%5Bname%5D=em"
+  "ail&filterColumns%5B6%5D%5Bcolumn%5D=email&filterColumns%5B6%5D%5Bvalue%5D="
+  "&filterColumns%5B7%5D%5Bmode%5D=like&filterColumns%5B7%5D%5Btext%5D=Phone&f"
+  "ilterColumns%5B7%5D%5Bname%5D=phone&filterColumns%5B7%5D%5Bcolumn%5D=phone&"
+  "filterColumns%5B7%5D%5Bvalue%5D=&selectedStatuses%5B%5D=1&deleteMode=soft&a"
+  "ctiveColumnName=active&mode=paginate");
+
+  ASSERT_EQ(post.size(), 8);
+  ASSERT_EQ(post["rowsPerPage"], "20");
+  ASSERT_EQ(post["page"], "1");
+  ASSERT_EQ(post["deleteMode"], "soft");
+  ASSERT_EQ(post["activeColumnName"], "active");
+  ASSERT_EQ(post["mode"], "paginate");
+
+  ASSERT_EQ(post.size("selectedStatuses"), 1);
+  ASSERT_EQ(post("selectedStatuses", 0), "1");
+
+  ASSERT_TRUE(post["search"].has_value());
+  ASSERT_TRUE(post["search"].value().empty());
+
+  ASSERT_EQ(post.size("filterColumns"), 8);
+  ASSERT_EQ(post.keys("filterColumns"), 
+    vector<string>({"0", "1", "2", "3", "4", "5", "6", "7"}));
+
+  ASSERT_EQ(post.keys("filterColumns", "0"), 
+    vector<string>({"column", "mode", "name", "text", "value"}));
+
+  ASSERT_EQ(post("filterColumns", "0", "mode"), "like");
+  ASSERT_EQ(post("filterColumns", "0", "text"), "Id");
+  ASSERT_EQ(post("filterColumns", "0", "name"), "id");
+  ASSERT_EQ(post("filterColumns", "0", "column"), "undefined");
+  ASSERT_EQ(post("filterColumns", "0", "value"), "");
+
+  ASSERT_EQ(post.keys("filterColumns", "1"), 
+    vector<string>({"column", "mode", "name", "text", "value"}));
+  ASSERT_EQ(post("filterColumns", "1", "mode"), "like");
+  ASSERT_EQ(post("filterColumns", "1", "text"), "Lastname");
+  ASSERT_EQ(post("filterColumns", "1", "name"), "lastname");
+  ASSERT_EQ(post("filterColumns", "1", "column"), "lastname");
+  ASSERT_EQ(post("filterColumns", "1", "value"), "");
+
+  EXPECT_THROW(post.each("filterColumns", [] (const auto &) {}), 
+    std::invalid_argument);
 }
