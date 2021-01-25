@@ -6,7 +6,7 @@
 #include <pistache/router.h>
 #include "pistache/endpoint.h"
 
-#include "inja.hpp"
+#include <nlohmann/json.hpp>
 
 #include "exceptions.hpp"
 #include "config_parser.hpp"

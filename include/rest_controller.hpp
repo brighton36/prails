@@ -27,7 +27,7 @@ namespace Controller {
       Controller::Response multiple_delete(const Pistache::Rest::Request&);
       Controller::Response read(const Pistache::Rest::Request&);
       Controller::Response del(const Pistache::Rest::Request&);
-    protected:
+    private:
 			// These must be overriden by inheriting classes, in order for the 
 	    // create/update actions to make any sense:
       virtual T modelDefault(std::tm) { return T(); };
