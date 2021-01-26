@@ -70,6 +70,7 @@ TEST(utilities_test, json_to_tm) {
   EXPECT_EQ(epoch1.tm_hour, 20);
   EXPECT_EQ(epoch1.tm_min, 54);
   EXPECT_EQ(epoch1.tm_sec, 14);
+  EXPECT_EQ(epoch1.tm_isdst, 0);
   EXPECT_EQ(epoch1.tm_gmtoff, 0);
   EXPECT_EQ(1604609654, timegm(&epoch1));
 
@@ -80,5 +81,6 @@ TEST(utilities_test, json_to_tm) {
   EXPECT_EQ(epoch2.tm_hour, 1);
   EXPECT_EQ(epoch2.tm_min, 2);
   EXPECT_EQ(epoch2.tm_sec, 3);
+  EXPECT_EQ(epoch2.tm_isdst, 0);
   EXPECT_EQ(epoch2.tm_gmtoff, (-5 * 3600));
 }
