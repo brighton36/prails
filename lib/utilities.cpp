@@ -129,8 +129,7 @@ string tm_to_iso8601(tm tm_time) {
 tm iso8601_to_tm(const string &time_as_string) {
   tm ret;
   memset(&ret, 0, sizeof(tm));
-  // TODO: We... may want/need to support +-offset
-  strptime(time_as_string.c_str(), "%FT%TZ", &ret);
+  strptime(time_as_string.c_str(), "%FT%T%z", &ret);
   return ret;
 }
 
