@@ -152,7 +152,7 @@ Controller::RestInstance<U,T>::index(const Pistache::Rest::Request &request) {
   auto post = Controller::PostBody(request.body());
   auto ret = nlohmann::json::array();
 
-  for (auto &m: modelSelect(post)) ret.push_back(Controller::ModelToJson(m));
+  for (auto &m: this->modelSelect(post)) ret.push_back(Controller::ModelToJson(m));
 
   return Controller::Response(ret);
 }
@@ -194,7 +194,7 @@ Controller::RestInstance<U,T>::create_or_update(const Pistache::Rest::Request& r
   } else 
     model = modelDefault(tm_time);
 
-  modelUpdate(model, post, tm_time);
+  this->modelUpdate(model, post, tm_time);
 
   return render_model_save_js<T>(model);
 }
@@ -216,7 +216,7 @@ Controller::RestInstance<U,T>::multiple_update(const Pistache::Rest::Request& re
       if (auto model = T::Find(stoi(v)); !model) 
         json_errors[v] = {"Record could not be found"};
       else {
-        modelUpdate(*model, update, tm_time);
+        this->modelUpdate(*model, update, tm_time);
 
         if ((*model).isValid()) (*model).save();
         else json_errors[v] = {"Record invalid"};
