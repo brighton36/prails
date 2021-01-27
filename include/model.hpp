@@ -19,12 +19,18 @@
 
 // I suppose we could use a template here, and do without this macro...:
 // https://stackoverflow.com/questions/9065081/how-do-i-get-the-argument-types-of-a-function-pointer-in-a-variadic-template-cla
-#define MODEL_ACCESSOR(name, type) \
+#define MODEL_READER(name, type) \
   std::optional<type> name() { \
     Model::RecordValueOpt val = recordGet(#name); \
     return (val) ? std::optional<type>(std::get<type>(*val)) : std::nullopt; \
-  }; \
-  void name(const Model::RecordValueOpt &val) { recordSet(#name, val); }; \
+  };
+
+#define MODEL_WRITER(name, type) \
+  void name(const Model::RecordValueOpt &val) { recordSet(#name, val); };
+
+#define MODEL_ACCESSOR(name, type) \
+  MODEL_READER(name, type) \
+  MODEL_WRITER(name, type)
 
 #define COL_TYPE(type) variant_index<Model::RecordValue, type>()
 
