@@ -12,6 +12,7 @@
 #include "config_parser.hpp"
 #include "utilities.hpp"
 #include "post_body.hpp"
+#include "detect.hpp"
 
 namespace Controller {
   class Instance;
@@ -29,20 +30,30 @@ namespace Controller {
     GetConfig((ConfigParser *)&config);
   }
 
+	template <typename T>
+	using to_json_t = decltype(std::declval<T>().to_json());
+
+	template <typename T>
+	using has_to_json = detect<T, to_json_t>;
+
   template <class T>
   nlohmann::json ModelToJson(T &model) {
-    auto json = nlohmann::json();
-    for (const auto &key : model.recordKeys())
-      if (auto value = model.recordGet(key); value.has_value())
-        std::visit([&key, &json](auto&& typeA) {
-          using U = std::decay_t<decltype(typeA)>;
-          if constexpr(std::is_same_v<U, std::tm>)
-            json[key] = prails::utilities::tm_to_iso8601(typeA);
-          else
-            json[key] = typeA;
-        }, value.value());
-      else
-        json[key] = nullptr;
+    nlohmann::json json;
+    if constexpr (has_to_json<T>{}) { 
+      json = model.to_json(); 
+    } else {
+      for (const auto &key : model.recordKeys())
+        if (auto value = model.recordGet(key); value.has_value())
+          std::visit([&key, &json](auto&& typeA) {
+            using U = std::decay_t<decltype(typeA)>;
+            if constexpr(std::is_same_v<U, std::tm>)
+              json[key] = prails::utilities::tm_to_iso8601(typeA);
+            else
+              json[key] = typeA;
+          }, value.value());
+        else
+          json[key] = nullptr;
+    }
 
     return json;
   }
