@@ -159,24 +159,6 @@ namespace Controller {
       std::string ensure_view_folder(std::string, std::string);
       std::string ensure_view_folder(std::string);
       void ensure_content_type(const Pistache::Rest::Request &, Pistache::Http::Mime::MediaType);
-      template <typename T>
-      T ensure_authorization(const Pistache::Rest::Request &request) {
-        auto authorization = request.headers().get<Pistache::Http::Header::Authorization>();
-        std::smatch matches;
-
-        if ((!authorization) || 
-          (!authorization->hasMethod<Pistache::Http::Header::Authorization::Method::Bearer>())
-        ) throw RequestException("This resource requires a valid authorization header");
-
-        std::string authorization_value = authorization->value();
-        if (!std::regex_search(authorization_value, matches, std::regex("^Bearer (.+)$")))
-          throw RequestException("This resource requires a valid authorization header");
-
-        auto ret = T::FromToken(matches[1]);
-        if (!ret) throw RequestException("Invalid authorization supplied");
-
-        return ret.value();
-      }
 
       Controller::Response render_html(std::string, std::string);
       Controller::Response render_html(std::string, std::string, nlohmann::json);
@@ -203,5 +185,7 @@ namespace Controller {
         );
       }
 
+      void send_fatal_response(Pistache::Http::ResponseWriter &, 
+        const Pistache::Rest::Request&, const std::string);
   };
 }

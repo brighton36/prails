@@ -90,7 +90,7 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
   const unsigned int abRequests = 50000;
   const string logline_matches = "^\\[[ -:\\.\\d]+] \\[thread [0-9]+] \\[(debug|info)] "
     "(Requested /log-a-visit|Routing: GET /log-a-visit to "
-    "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\) )$";
+    "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\))$";
 
   // Make sure ab exists and is executable:
   ASSERT_FALSE(access(abPath.c_str(), X_OK));

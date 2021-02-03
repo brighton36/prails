@@ -59,18 +59,23 @@ class Task : public Model::Instance<Task> {
 #define TASKS_CLASS_NAME TasksController
 #endif
 
-class TASKS_CLASS_NAME : public Controller::RestInstance<TASKS_CLASS_NAME, Task> { 
+#ifndef AUTHORIZER_CLASS_NAME
+#define AUTHORIZER_CLASS_NAME Controller::AuthorizeAll
+#endif
+
+class TASKS_CLASS_NAME : 
+public Controller::RestInstance<TASKS_CLASS_NAME, Task, AUTHORIZER_CLASS_NAME> { 
   public:
     static constexpr std::string_view rest_prefix = { TASKS_REST_PREFIX };
 
     using Controller::RestInstance<TASKS_CLASS_NAME, Task>::RestInstance;
 
   private:
-    Task modelDefault(std::tm tm_time) {
+    Task model_default(std::tm tm_time, AUTHORIZER_CLASS_NAME &) {
       return Task({ {"created_at", tm_time}, {"active", (int) 1} });
     }
 
-    void modelUpdate(Task &task, Controller::PostBody &post, std::tm tm_time) {
+    void model_update(Task &task, Controller::PostBody &post, std::tm tm_time, AUTHORIZER_CLASS_NAME &) {
       task.updated_at(tm_time);
 
       if (post["name"]) task.name(*post["name"]);
