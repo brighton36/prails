@@ -7,12 +7,12 @@
   if (post.has_scalar(#name)) model.name(post.operator[]<type>(#name));
 
 namespace Controller {
-  using std::string, std::string_view, std::optional, std::nullopt;
-  using std::map, std::vector;
-  using std::make_optional;
-  using ControllerPtr = std::shared_ptr<Controller::Instance>;
-  using Request = Pistache::Rest::Request;
-  using Response = Controller::Response;
+
+using std::string, std::string_view, std::optional, std::nullopt, std::map, 
+  std::vector, std::make_optional;
+using ControllerPtr = std::shared_ptr<Controller::Instance>;
+using Pistache::Rest::Request;
+using Controller::Response;
 
 class AuthorizeAll {
   public:
@@ -133,7 +133,6 @@ class RestInstance : public Controller::Instance {
 
     static vector<string> actions() { 
       vector<string> ret;
-
       std::transform(std::begin(TController::rest_actions),
         std::end(TController::rest_actions), 
         std::back_inserter(ret), 
@@ -150,10 +149,8 @@ class RestInstance : public Controller::Instance {
     Response index(const Request &request) {
       TAuthorizer authorizer = ensure_authorization(request, "index");
       auto ret = nlohmann::json::array();
-
       for (auto &m: model_index(authorizer)) 
         ret.push_back(Controller::ModelToJson(m));
-
       return Response(ret);
     }
 
