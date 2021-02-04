@@ -47,18 +47,18 @@ namespace Controller {
       Controller::Response read(const Pistache::Rest::Request&);
       Controller::Response del(const Pistache::Rest::Request&);
     protected:
-			// These must be overriden by inheriting classes, in order for the 
-	    // create/update actions to make any sense:
+      // These must be overriden by inheriting classes, in order for the 
+      // create/update actions to make any sense:
       virtual TModel model_default(std::tm, TAuthorizer &) { return TModel(); };
-			virtual std::optional<TModel> model_read(int id, TAuthorizer &) {
+      virtual std::optional<TModel> model_read(int id, TAuthorizer &) {
         return TModel::Find(id);
       }
-			virtual void model_update(TModel &, Controller::PostBody &, std::tm, TAuthorizer &) {}
-			virtual bool model_delete(TModel &model, TAuthorizer &) {
+      virtual void model_update(TModel &, Controller::PostBody &, std::tm, TAuthorizer &) {}
+      virtual bool model_delete(TModel &model, TAuthorizer &) {
         model.remove();
         return true;
       }
-			virtual std::vector<TModel> model_index(TAuthorizer &) {
+      virtual std::vector<TModel> model_index(TAuthorizer &) {
         return TModel::Select( fmt::format("select * from {table_name}", 
           fmt::arg("table_name", TModel::Definition.table_name)));
       }

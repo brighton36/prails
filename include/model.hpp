@@ -103,7 +103,7 @@ namespace Model {
   };
   typedef std::vector<Validator> Validations;
 
-	static void Log(const std::string &query) { ModelFactory::Log(query); }
+  static void Log(const std::string &query) { ModelFactory::Log(query); }
 
   std::tm inline NowUTC() {
     time_t t_time = time(NULL);
@@ -340,7 +340,7 @@ namespace Model {
             }
           }
 
-					Model::Log(query);
+          Model::Log(query);
 
           st.exchange(soci::use(where));
 
@@ -582,7 +582,7 @@ void Model::Instance<T>::save() {
 
     soci::statement update = (sql.prepare << query, soci::use(this));
 
-		Model::Log(query);
+    Model::Log(query);
 
     update.execute(true);
 
@@ -602,9 +602,9 @@ void Model::Instance<T>::save() {
       fmt::arg("columns", prails::utilities::join(columns, ", ")),
       fmt::arg("values", prails::utilities::join(values, ", ")));
 
-		Model::Log(query);
+    Model::Log(query);
 
-		sql << query, soci::use(this);
+    sql << query, soci::use(this);
 
     // NOTE: There appears to be a bug in the pooled session code of soci, that 
     // causes weird typecasting issues from the long long return value of 
@@ -692,8 +692,8 @@ void Model::Instance<T>::recordSet(const std::string &col, const Model::RecordVa
         using V = std::decay_t<decltype(fromType)>;
         using U = std::decay_t<decltype(toType)>;
 
-				// cppcheck takes umbrage with this valid if statement. Disable that:
-				// cppcheck-suppress internalAstError
+        // cppcheck takes umbrage with this valid if statement. Disable that:
+        // cppcheck-suppress internalAstError
         if constexpr (std::is_same_v<V, std::tm> || std::is_same_v<U, std::tm>) {
           throw ModelException("Time conversions are unsupported on {} column.", col);
         } else if constexpr (!std::is_same_v<V, std::string> && !std::is_same_v<U, std::string>)
@@ -781,10 +781,10 @@ template <class T>
 void Model::Instance<T>::Remove(std::string table_name, long long int id) {
 
   soci::session sql = ModelFactory::getSession("default");
-	std::string query = fmt::format("delete from {table_name} where id = :id", 
+  std::string query = fmt::format("delete from {table_name} where id = :id", 
     fmt::arg("table_name", table_name));
 
-	Model::Log(query);
+  Model::Log(query);
 
   soci::statement delete_stmt = (sql.prepare << query, soci::use(id, "id"));
   delete_stmt.execute(true);
@@ -804,12 +804,12 @@ std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where
   soci::session sql = ModelFactory::getSession("default");
   soci::row r;
 
-	std::string query = fmt::format(
+  std::string query = fmt::format(
     "select * from {table_name} where {where} limit 1", 
     fmt::arg("table_name", T::Definition.table_name), 
     fmt::arg("where", where));
 
-	Model::Log(query);
+  Model::Log(query);
   sql << query, soci::use(&where_values), soci::into(r);
 
   if (!sql.got_data()) return std::nullopt;
@@ -830,7 +830,7 @@ std::vector<T> Model::Instance<T>::Select(std::string query, Args... args) {
   soci::row rows;
   std::vector<T> ret;
 
-	Model::Log(query);
+  Model::Log(query);
   ((void) st.exchange(soci::use<Args>(args)), ...);
 
   st.alloc();
@@ -928,8 +928,8 @@ void Model::Instance<T>::CreateTable(std::vector<std::pair<std::string,std::stri
     fmt::arg("pkey_column", T::Definition.pkey_column),
     fmt::arg("columns", joined_columns));
 
-	Model::Log(query);
-	sql << query;
+  Model::Log(query);
+  sql << query;
 }
 
 template <class T>
@@ -938,7 +938,7 @@ void Model::Instance<T>::DropTable() {
 
   // NOTE: I don't think there's any way to error test this, other than to expect
   // for an error to throw from soci...
-	std::string query = fmt::format("drop table {table_name}",
+  std::string query = fmt::format("drop table {table_name}",
     fmt::arg("table_name", T::Definition.table_name));
   sql << query;
 }

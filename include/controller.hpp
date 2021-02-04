@@ -30,11 +30,11 @@ namespace Controller {
     GetConfig((ConfigParser *)&config);
   }
 
-	template <typename T>
-	using to_json_t = decltype(std::declval<T>().to_json());
+  template <typename T>
+  using to_json_t = decltype(std::declval<T>().to_json());
 
-	template <typename T>
-	using has_to_json = detect<T, to_json_t>;
+  template <typename T>
+  using has_to_json = detect<T, to_json_t>;
 
   template <class T>
   nlohmann::json ModelToJson(T &model) {
