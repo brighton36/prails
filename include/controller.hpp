@@ -15,6 +15,10 @@
 #include "detect.hpp"
 
 namespace Controller {
+  using std::string, std::string_view, std::optional, std::nullopt, std::map, 
+    std::vector, std::make_optional;
+  using Pistache::Rest::Request;
+
   class Instance;
 
   ConfigParser inline GetConfig(ConfigParser *set_config = nullptr) { 
@@ -60,25 +64,25 @@ namespace Controller {
 
   class Response {
     public:
-      Response(unsigned int code, const std::string &content_type, 
-        const std::string &body) : code_(code), content_type_(content_type), 
+      Response(unsigned int code, const string &content_type, 
+        const string &body) : code_(code), content_type_(content_type), 
         body_(body) {};
-      Response(unsigned int code, const std::string &content_type, 
-        const std::string &body, 
-        const std::vector<std::shared_ptr<Pistache::Http::Header::Header>> &headers) :
+      Response(unsigned int code, const string &content_type, 
+        const string &body, 
+        const vector<std::shared_ptr<Pistache::Http::Header::Header>> &headers) :
         code_(code), content_type_(content_type), body_(body), headers_(headers) {};
       explicit Response(nlohmann::json body, unsigned int code = 200) :
         code_(code), content_type_("application/json; charset=utf8"), 
         body_(body.dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore)) {};
 
       unsigned int code() { return code_; };
-      std::string content_type() { return content_type_; };
-      std::string body() { return body_; };
+      string content_type() { return content_type_; };
+      string body() { return body_; };
 
       void addHeader(std::shared_ptr<Pistache::Http::Header::Header> header) {
         headers_.push_back(header);
       }
-      std::vector<std::shared_ptr<Pistache::Http::Header::Header>> headers() {
+      vector<std::shared_ptr<Pistache::Http::Header::Header>> headers() {
         return headers_; 
       };
 
@@ -97,33 +101,32 @@ namespace Controller {
 
     protected:
       unsigned int code_;
-      std::string content_type_;
-      std::string body_;
-      std::vector<std::shared_ptr<Pistache::Http::Header::Header>> headers_;
+      string content_type_;
+      string body_;
+      vector<std::shared_ptr<Pistache::Http::Header::Header>> headers_;
   };
 
   class CorsOkResponse : public Response{
-    inline static const std::vector<std::string> DefaultMethods = {
+    inline static const vector<string> DefaultMethods = {
       "GET", "POST", "PUT", "DELETE"};
     public:
-      CorsOkResponse(const std::vector<std::string> &whichMethods = DefaultMethods);
+      CorsOkResponse(const vector<string> &whichMethods = DefaultMethods);
   };
 
   class Instance { 
     public:
-      typedef std::function<Controller::Response(const Pistache::Rest::Request&)> Action;
+      typedef std::function<Response(const Request&)> Action;
 
-      std::string controller_name, views_path;
+      string controller_name, views_path;
 
-      explicit Instance(const std::string &controller_name, const std::string &views_path) : 
+      explicit Instance(const string &controller_name, const string &views_path) : 
         controller_name(controller_name), views_path(views_path), 
         logger(spdlog::get("server")) { 
         if (logger == nullptr)
           throw std::runtime_error("Unable to acquire controller logger");
       }
 
-      virtual void route_action(std::string, const Pistache::Rest::Request&, 
-        Pistache::Http::ResponseWriter);
+      virtual void route_action(string, const Request&, Pistache::Http::ResponseWriter);
 
       template <typename... Args> static void static_checks() {
         static_assert(sizeof...(Args) == 1, "Function should take 1 parameter");
@@ -131,42 +134,61 @@ namespace Controller {
 
       template <typename Result, typename Cls, typename... Args, typename Obj>
       static Pistache::Rest::Route::Handler \
-      bind(std::string action, Result (Cls::*func)(Args...), std::shared_ptr<Obj> objPtr) {
+      bind(string action, Result (Cls::*func)(Args...), std::shared_ptr<Obj> objPtr) {
         static_checks<Args...>();
 
         if (objPtr->actions.count(action) > 0)
           throw RequestException("A \"{}\" action is being registered, and which "
             "already exists.", action);
 
-        objPtr->actions[action] = [=](const Pistache::Rest::Request &request) { 
+        objPtr->actions[action] = [=](const Request &request) { 
           auto castPtr = std::dynamic_pointer_cast<Cls>(objPtr);
           return (castPtr.get()->*func)(request);
         };
 
-        return [=](const Pistache::Rest::Request &request, 
+        return [=](const Request &request, 
           Pistache::Http::ResponseWriter response) {
           objPtr->route_action(action, request, std::move(response));
           return Pistache::Rest::Route::Result::Ok;
         };
       }
 
-      std::map<std::string, Action> actions;
+      map<string, Action> actions;
 
     protected:
       std::shared_ptr<spdlog::logger> logger;
-      std::string ensure_view_file(std::string, std::string);
-      std::string ensure_view_file(std::string);
-      std::string ensure_view_folder(std::string, std::string);
-      std::string ensure_view_folder(std::string);
-      void ensure_content_type(const Pistache::Rest::Request &, Pistache::Http::Mime::MediaType);
+      string ensure_view_file(string, string);
+      string ensure_view_file(string);
+      string ensure_view_folder(string, string);
+      string ensure_view_folder(string);
+      void ensure_content_type(const Request &, Pistache::Http::Mime::MediaType);
 
-      Controller::Response render_html(std::string, std::string);
-      Controller::Response render_html(std::string, std::string, nlohmann::json);
-      Controller::Response render_js(std::string, nlohmann::json);
-      Controller::Response render_js(std::string);
+      template <typename TAuthorizer>
+      TAuthorizer ensure_authorization(const Request& req, const string &action) {
+        auto auth_header = req.headers().tryGet<Pistache::Http::Header::Authorization>();
+
+        optional<TAuthorizer> auth = TAuthorizer::FromHeader( (!auth_header) ? 
+          nullopt : make_optional<string>(auth_header->value()));
+
+        if (!auth.has_value())
+          throw AccessDenied("Unable to fetch authorizer FromHeader",
+            "token_not_provided");
+        
+        if (!(*auth).is_authorized(controller_name, action))
+          throw AccessDenied(
+            "Authorization declined for user \"{}\"", "token_not_provided", 
+            (*auth).authorizer_instance_label());
+
+        return auth.value();
+      }
+
+      Response render_html(string, string);
+      Response render_html(string, string, nlohmann::json);
+      Response render_js(string, nlohmann::json);
+      Response render_js(string);
 
       template <typename T>
-      Controller::Response render_model_save_js(T &model, int success_code = 0, 
+      Response render_model_save_js(T &model, int success_code = 0, 
         int fail_code = -2) {
         auto json_errors = nlohmann::json::object();
 
@@ -174,18 +196,18 @@ namespace Controller {
           model.save();
         else {
           for (auto &attr_errors : model.errors() ) {
-            std::string attr = (attr_errors.first) ? *attr_errors.first : "(General) Error";
+            string attr = (attr_errors.first) ? *attr_errors.first : "(General) Error";
             json_errors[attr] = nlohmann::json(attr_errors.second);
           }
         }
 
-        return Controller::Response( (json_errors.size() > 0) ? 
+        return Response( (json_errors.size() > 0) ? 
           nlohmann::json({{"status", fail_code}, {"msg", json_errors }}) : 
           nlohmann::json({{"status", success_code}, {"id", *model.id()}})
         );
       }
 
       void send_fatal_response(Pistache::Http::ResponseWriter &, 
-        const Pistache::Rest::Request&, const std::string);
+        const Request&, const string);
   };
 }

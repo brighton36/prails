@@ -141,14 +141,14 @@ class RestInstance : public Controller::Instance {
       return ret;
     }
 
-    Response options(const Request& request) {
+    Response options(const Request&) {
       // NOTE: There is no Authorization header sent to OPTIONS, and thus no
       // ensure_authorization() 
       return Controller::CorsOkResponse();
     }
 
     Response index(const Request &request) {
-      TAuthorizer authorizer = ensure_authorization(request, "index");
+      TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, "index");
       auto ret = nlohmann::json::array();
       for (auto &m: model_index(authorizer)) 
         ret.push_back(Controller::ModelToJson(m));
@@ -160,7 +160,7 @@ class RestInstance : public Controller::Instance {
 
       bool is_update = request.hasParam(":id");
 
-      TAuthorizer authorizer = ensure_authorization(request, 
+      TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, 
         (is_update) ? "update" : "create");
 
       auto post = Controller::PostBody(request.body());
@@ -182,7 +182,7 @@ class RestInstance : public Controller::Instance {
 
     Response multiple_update(const Request& request) {
       ensure_content_type(request, MIME(Application, FormUrlEncoded));
-      TAuthorizer authorizer = ensure_authorization(request, "multiple_update");
+      TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, "multiple_update");
 
       auto json_errors = nlohmann::json::object();
       auto post = Controller::PostBody(request.body());
@@ -216,7 +216,7 @@ class RestInstance : public Controller::Instance {
 
     Response multiple_delete(const Request& request) {
       ensure_content_type(request, MIME(Application, FormUrlEncoded));
-      TAuthorizer authorizer = ensure_authorization(request, "multiple_delete");
+      TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, "multiple_delete");
 
       auto post = Controller::PostBody(request.body());
       post.each("ids", [this, &post, &authorizer](const string &v) { 
@@ -228,7 +228,7 @@ class RestInstance : public Controller::Instance {
     }
 
     Response read(const Request& request) {
-      TAuthorizer authorizer = ensure_authorization(request, "read");
+      TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, "read");
       
       auto model = model_read(request.param(":id").as<int>(), authorizer);
       return (model.has_value()) ?
@@ -237,7 +237,7 @@ class RestInstance : public Controller::Instance {
     }
 
     Response del(const Request& request) {
-      TAuthorizer authorizer = ensure_authorization(request, "delete");
+      TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, "delete");
 
       auto model = TModel::Find(request.param(":id").as<int>());
 
@@ -263,25 +263,6 @@ class RestInstance : public Controller::Instance {
       return TModel::Select( fmt::format("select * from {table_name}", 
         fmt::arg("table_name", TModel::Definition.table_name)));
     }
-
-    TAuthorizer ensure_authorization(const Request& req, const string &action) {
-      auto auth_header = req.headers().tryGet<Pistache::Http::Header::Authorization>();
-
-      optional<TAuthorizer> auth = TAuthorizer::FromHeader( (!auth_header) ? 
-        nullopt : make_optional<string>(auth_header->value()));
-
-      if (!auth.has_value())
-        throw AccessDenied("Unabled to fetch authorizer FromHeader",
-          "token_not_provided");
-      
-      if (!(*auth).is_authorized(controller_name, action))
-        throw AccessDenied(
-          "Authorization declined for user \"{}\"", "token_not_provided", 
-          (*auth).authorizer_instance_label());
-
-      return auth.value();
-    };
-
 };
 
 }
