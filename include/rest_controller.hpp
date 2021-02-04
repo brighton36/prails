@@ -142,7 +142,8 @@ class RestInstance : public Controller::Instance {
     }
 
     Response options(const Request& request) {
-      ensure_authorization(request, "options");
+      // NOTE: There is no Authorization header sent to OPTIONS, and thus no
+      // ensure_authorization() 
       return Controller::CorsOkResponse();
     }
 
