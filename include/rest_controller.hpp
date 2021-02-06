@@ -14,24 +14,6 @@ using ControllerPtr = std::shared_ptr<Controller::Instance>;
 using Pistache::Rest::Request;
 using Controller::Response;
 
-class AuthorizeAll {
-  public:
-    bool is_authorized(const string &, const string &) {return true;}
-    string authorizer_instance_label() { return "AuthorizeAll"; };
-    static optional<AuthorizeAll> FromHeader(optional<string>) {
-      return make_optional<AuthorizeAll>();
-    }
-};
-
-class AuthorizeNone {
-  public:
-    bool is_authorized(const string &, const string &) { return false;}
-    string authorizer_instance_label() { return "AuthorizeNone"; };
-    static optional<AuthorizeNone> FromHeader(optional<string>) {
-      return make_optional<AuthorizeNone>();
-    }
-};
-
 template <class TController, class TModel, class TAuthorizer = AuthorizeAll>
 class RestInstance : public Controller::Instance {
   public:

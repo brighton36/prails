@@ -18,6 +18,7 @@ namespace Controller {
   using std::string, std::string_view, std::optional, std::nullopt, std::map, 
     std::vector, std::make_optional;
   using Pistache::Rest::Request;
+  using namespace Pistache;
 
   class Instance;
 
@@ -69,7 +70,7 @@ namespace Controller {
         body_(body) {};
       Response(unsigned int code, const string &content_type, 
         const string &body, 
-        const vector<std::shared_ptr<Pistache::Http::Header::Header>> &headers) :
+        const vector<std::shared_ptr<Http::Header::Header>> &headers) :
         code_(code), content_type_(content_type), body_(body), headers_(headers) {};
       explicit Response(nlohmann::json body, unsigned int code = 200) :
         code_(code), content_type_("application/json; charset=utf8"), 
@@ -79,23 +80,23 @@ namespace Controller {
       string content_type() { return content_type_; };
       string body() { return body_; };
 
-      void addHeader(std::shared_ptr<Pistache::Http::Header::Header> header) {
+      void addHeader(std::shared_ptr<Http::Header::Header> header) {
         headers_.push_back(header);
       }
-      vector<std::shared_ptr<Pistache::Http::Header::Header>> headers() {
+      vector<std::shared_ptr<Http::Header::Header>> headers() {
         return headers_; 
       };
 
-      void send(Pistache::Http::ResponseWriter &response) {
+      void send(Http::ResponseWriter &response) {
         if ( !Controller::GetConfig().cors_allow().empty() )
           response.headers().add(
-            std::make_shared<Pistache::Http::Header::AccessControlAllowOrigin>(
+            std::make_shared<Http::Header::AccessControlAllowOrigin>(
               Controller::GetConfig().cors_allow()));
 
         for (const auto & header : headers()) response.headers().add(header);
 
-        response.send(static_cast<Pistache::Http::Code>(code()), body(), 
-          Pistache::Http::Mime::MediaType::fromString(content_type())
+        response.send(static_cast<Http::Code>(code()), body(), 
+          Http::Mime::MediaType::fromString(content_type())
         );
       };
 
@@ -103,7 +104,7 @@ namespace Controller {
       unsigned int code_;
       string content_type_;
       string body_;
-      vector<std::shared_ptr<Pistache::Http::Header::Header>> headers_;
+      vector<std::shared_ptr<Http::Header::Header>> headers_;
   };
 
   class CorsOkResponse : public Response{
@@ -111,6 +112,24 @@ namespace Controller {
       "GET", "POST", "PUT", "DELETE"};
     public:
       CorsOkResponse(const vector<string> &whichMethods = DefaultMethods);
+  };
+
+  class AuthorizeAll {
+    public:
+      bool is_authorized(const string &, const string &) {return true;}
+      string authorizer_instance_label() { return "AuthorizeAll"; };
+      static optional<AuthorizeAll> FromHeader(optional<string>) {
+        return make_optional<AuthorizeAll>();
+      }
+  };
+
+  class AuthorizeNone {
+    public:
+      bool is_authorized(const string &, const string &) { return false;}
+      string authorizer_instance_label() { return "AuthorizeNone"; };
+      static optional<AuthorizeNone> FromHeader(optional<string>) {
+        return make_optional<AuthorizeNone>();
+      }
   };
 
   class Instance { 
@@ -126,14 +145,14 @@ namespace Controller {
           throw std::runtime_error("Unable to acquire controller logger");
       }
 
-      virtual void route_action(string, const Request&, Pistache::Http::ResponseWriter);
+      virtual void route_action(string, const Request&, Http::ResponseWriter);
 
       template <typename... Args> static void static_checks() {
         static_assert(sizeof...(Args) == 1, "Function should take 1 parameter");
       }
 
       template <typename Result, typename Cls, typename... Args, typename Obj>
-      static Pistache::Rest::Route::Handler \
+      static Rest::Route::Handler \
       bind(string action, Result (Cls::*func)(Args...), std::shared_ptr<Obj> objPtr) {
         static_checks<Args...>();
 
@@ -147,9 +166,9 @@ namespace Controller {
         };
 
         return [=](const Request &request, 
-          Pistache::Http::ResponseWriter response) {
+          Http::ResponseWriter response) {
           objPtr->route_action(action, request, std::move(response));
-          return Pistache::Rest::Route::Result::Ok;
+          return Rest::Route::Result::Ok;
         };
       }
 
@@ -161,17 +180,17 @@ namespace Controller {
       string ensure_view_file(string);
       string ensure_view_folder(string, string);
       string ensure_view_folder(string);
-      void ensure_content_type(const Request &, Pistache::Http::Mime::MediaType);
+      void ensure_content_type(const Request &, Http::Mime::MediaType);
 
       template <typename TAuthorizer>
       TAuthorizer ensure_authorization(const Request& req, const string &action) {
-        auto auth_header = req.headers().tryGet<Pistache::Http::Header::Authorization>();
+        auto auth_header = req.headers().tryGet<Http::Header::Authorization>();
 
-        optional<TAuthorizer> auth = TAuthorizer::FromHeader( (!auth_header) ? 
-          nullopt : make_optional<string>(auth_header->value()));
+        optional<TAuthorizer> auth = TAuthorizer::FromHeader( 
+          (auth_header) ? make_optional<string>(auth_header->value()) : nullopt);
 
         if (!auth.has_value())
-          throw AccessDenied("Unable to fetch authorizer FromHeader",
+          throw AccessDenied("Unable to fetch authorizer from Provided Header",
             "token_not_provided");
         
         if (!(*auth).is_authorized(controller_name, action))
@@ -207,7 +226,7 @@ namespace Controller {
         );
       }
 
-      void send_fatal_response(Pistache::Http::ResponseWriter &, 
+      void send_fatal_response(Http::ResponseWriter &, 
         const Request&, const string);
   };
 }

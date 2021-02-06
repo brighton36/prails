@@ -11,7 +11,7 @@ using namespace prails::utilities;
 void Controller::Instance::
 send_fatal_response(ResponseWriter &response, const Rest::Request& request, 
 const std::string public_what = "Internal Server Error") {
-  auto content_type = request.headers().get<Header::ContentType>();
+  auto content_type = request.headers().tryGet<Header::ContentType>();
   
   if (content_type && (content_type->mime() == MIME(Application, Json)))
     response.send(Code::Internal_Server_Error, 
