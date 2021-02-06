@@ -46,6 +46,9 @@ route_action(string action, const Rest::Request& request, ResponseWriter respons
 
     actions[action](request).send(response);
     
+  } catch(const AccessDenied &e) { 
+    logger->error("AccessDenied at {}: {}", route_description, e.what());
+    send_fatal_response(response, request, e.public_what());
   } catch(const RequestException &e) { 
     logger->error("RequestException at {}: {}", route_description, e.what());
     send_fatal_response(response, request, e.public_what());
