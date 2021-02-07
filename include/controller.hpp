@@ -226,7 +226,6 @@ namespace Controller {
         );
       }
 
-      void send_fatal_response(Http::ResponseWriter &, 
-        const Request&, const string);
+      void send_fatal_response(Http::ResponseWriter &, const Request&, Pistache::Http::Code, const string);
   };
 }

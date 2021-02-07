@@ -10,16 +10,15 @@ using namespace prails::utilities;
 
 void Controller::Instance::
 send_fatal_response(ResponseWriter &response, const Rest::Request& request, 
-const std::string public_what = "Internal Server Error") {
+Code code, const std::string public_what = "Internal Server Error") {
   auto content_type = request.headers().tryGet<Header::ContentType>();
   
   if (content_type && (content_type->mime() == MIME(Application, Json)))
-    response.send(Code::Internal_Server_Error, 
-      json({{"error", public_what}}).dump(), MIME(Application, Json));
+    response.send(code, json({{"error", public_what}}).dump(), 
+    MIME(Application, Json));
   else
-    response.send(Code::Internal_Server_Error, fmt::format(
-      Controller::GetConfig().html_error(500), fmt::arg("what", public_what)),
-      MIME(Text, Html));
+    response.send(code, fmt::format( Controller::GetConfig().html_error(500), 
+      fmt::arg("what", public_what)), MIME(Text, Html));
 }
 
 void Controller::Instance::
@@ -48,13 +47,13 @@ route_action(string action, const Rest::Request& request, ResponseWriter respons
     
   } catch(const AccessDenied &e) { 
     logger->error("AccessDenied at {}: {}", route_description, e.what());
-    send_fatal_response(response, request, e.public_what());
+    send_fatal_response(response, request, Code::Bad_Request, e.public_what());
   } catch(const RequestException &e) { 
     logger->error("RequestException at {}: {}", route_description, e.what());
-    send_fatal_response(response, request, e.public_what());
+    send_fatal_response(response, request, Code::Internal_Server_Error, e.public_what());
   } catch(const exception &e) { 
     logger->error("Exception at {}: {}", route_description, e.what());
-    send_fatal_response(response, request);
+    send_fatal_response(response, request, Code::Internal_Server_Error);
   }
 }
 

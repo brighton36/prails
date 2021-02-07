@@ -68,7 +68,7 @@ public Controller::RestInstance<TASKS_CLASS_NAME, Task, AUTHORIZER_CLASS_NAME> {
   public:
     static constexpr std::string_view rest_prefix = { TASKS_REST_PREFIX };
 
-    using Controller::RestInstance<TASKS_CLASS_NAME, Task>::RestInstance;
+    using Controller::RestInstance<TASKS_CLASS_NAME, Task, AUTHORIZER_CLASS_NAME>::RestInstance;
 
   private:
     Task model_default(std::tm tm_time, AUTHORIZER_CLASS_NAME &) {
