@@ -61,9 +61,12 @@ route_action(string action, const Rest::Request& request, ResponseWriter respons
 void Controller::Instance::
 ensure_content_type(const Rest::Request &request, Mime::MediaType mime) {
 
-  auto content_type = request.headers().get<Header::ContentType>();
+  auto content_type = request.headers().tryGet<Header::ContentType>();
 
-  if ((!content_type) || (content_type->mime() != mime))
+  if (!content_type)
+    throw RequestException("Client is missing Content-Type request header");
+
+  if (content_type->mime() != mime)
     throw RequestException("Unrecognized Content Type supplied to request. "
       "Expected \"application/x-www-form-urlencoded\" received {}", 
       content_type->mime().toString());
