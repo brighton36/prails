@@ -153,9 +153,13 @@ string ConfigParser::html_error(unsigned int error) {
   string addr = fmt::format("Server at {} Port {}", address(), port());
 
   switch (error) {
+    case 400:
+      return fmt::format(html_error, "400 Bad Request", "Bad Request", 
+        "Your browser sent a request that this server could not understand.", 
+        addr);
     case 404:
       return fmt::format(html_error, "404 Not Found", "Not Found", 
-        "The requested URL /not_found was not found on this server.", addr);
+        "The requested URL was not found on this server.", addr);
     case 500:
       return fmt::format(html_error, "500 Internal Server Error", "Internal Server Error", 
         "There was an error processing this request.", addr);

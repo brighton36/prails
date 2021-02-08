@@ -16,9 +16,11 @@ Code code, const std::string public_what = "Internal Server Error") {
   if (content_type && (content_type->mime() == MIME(Application, Json)))
     response.send(code, json({{"error", public_what}}).dump(), 
     MIME(Application, Json));
-  else
-    response.send(code, fmt::format( Controller::GetConfig().html_error(500), 
+  else {
+    auto code_value = static_cast<std::underlying_type<Pistache::Http::Code>::type>(code);
+    response.send(code, fmt::format( Controller::GetConfig().html_error(code_value), 
       fmt::arg("what", public_what)), MIME(Text, Html));
+  }
 }
 
 void Controller::Instance::
