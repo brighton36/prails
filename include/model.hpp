@@ -9,6 +9,7 @@
 #include "spdlog/spdlog.h"
 
 #include <soci/soci.h>
+#include <soci/version.h>
 #include <soci/sqlite3/soci-sqlite3.h>
 #include <soci/mysql/soci-mysql.h>
 
@@ -630,11 +631,20 @@ void Model::Instance<T>::save() {
 
       last_id = static_cast<long long int>(mysql_last_id);
     } else {
+      // NOTE: I'm not actually sure that this is the determinant of what
+      // get_last_insert_id is. On ubuntu, it accepts a long int. On arch
+      // it accepts a long long int.
+      bool is_lastid_ok;
+#if (SOCI_VERSION > 400000)
+      is_lastid_ok = sql.get_last_insert_id(definition->table_name, last_id);
+#else
       long int soci_last_id = 0;
-      if (!sql.get_last_insert_id(definition->table_name, soci_last_id))
+      is_lastid_ok = sql.get_last_insert_id(definition->table_name, soci_last_id);
+      if (is_lastid_ok)
+        last_id = static_cast<long long int>(soci_last_id);
+#endif
+      if (!is_lastid_ok)
         throw ModelException("Unable to perform insert, last_insert_id returned zero.");
-
-      last_id = static_cast<long long int>(soci_last_id);
     }
 
     recordSet(definition->pkey_column, last_id);
