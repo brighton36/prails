@@ -773,6 +773,9 @@ Model::Record Model::Instance<T>::RowToRecord(soci::row &r) {
               t_from_soci = timegm(&tm_from_soci);
               memcpy(&tm_to_ret, gmtime(&t_from_soci), sizeof(tm));
             } else {
+              // For some reason, arch was setting t_from_soci using +3600
+              // unless I set this value to -1..
+              tm_from_soci.tm_isdst = -1;
               t_from_soci = mktime(&tm_from_soci);
               memcpy(&tm_to_ret, localtime(&t_from_soci), sizeof(tm));
             }

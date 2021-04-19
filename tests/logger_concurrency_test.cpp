@@ -87,7 +87,7 @@ TEST(LoggerConcurrency, ab_log_a_visit) {
 
   const string abPath = "/usr/bin/ab";
   const unsigned int abThreads = 8;
-  const unsigned int abRequests = 50000;
+  const unsigned int abRequests = 5000;
   const string logline_matches = "^\\[[ -:\\.\\d]+] \\[thread [0-9]+] \\[(debug|info)] "
     "(Requested /log-a-visit|Routing: GET /log-a-visit to "
     "LoggerConcurrencyController#log_a_visit \\(127\\.0\\.0\\.1\\))$";
