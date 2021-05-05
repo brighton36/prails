@@ -2,6 +2,7 @@
 #include <string>
 
 #include "spdlog/spdlog.h"
+#include "yaml-cpp/yaml.h"
 
 class ConfigParser {
   public:
@@ -32,7 +33,13 @@ class ConfigParser {
     bool is_logging_to_console();
     void is_logging_to_console(bool);
 
+    bool has_value(std::string key) { return yaml[key]; }
+    template <typename T>
+    T get(std::string key) { return yaml[key].as<T>(); }
+
+
   private:
+    YAML::Node yaml;
     unsigned int port_;
     unsigned int threads_;
     unsigned int spdlog_queue_size_;

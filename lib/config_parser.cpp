@@ -1,7 +1,6 @@
 #include "config_parser.hpp"
 #include "utilities.hpp"
 
-#include "yaml-cpp/yaml.h"
 #include "spdlog/async.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -39,21 +38,20 @@ ConfigParser::ConfigParser(string config_file_path) {
 
     base_path = filesystem::path(filesystem::canonical(config_file_path)).parent_path();
 
-    auto yaml = YAML::LoadFile(config_file_path);
-    if (yaml["port"]) port_ = yaml["port"].as<unsigned int>();
-    if (yaml["threads"]) threads_ = yaml["threads"].as<unsigned int>();
-    if (yaml["spdlog_queue_size"]) 
-      spdlog_queue_size(yaml["spdlog_queue_size"].as<unsigned int>());
-    if (yaml["address"]) address_ = yaml["address"].as<string>();
-    if (yaml["static_resource_path"]) 
-      static_resource_path_ = yaml["static_resource_path"].as<string>();
-    if (yaml["views_path"]) views_path_ = yaml["views_path"].as<string>();
-    if (yaml["config_path"]) config_path_ = yaml["config_path"].as<string>();
-    if (yaml["log_directory"]) 
-      log_directory_ = yaml["log_directory"].as<string>();
-    if (yaml["log_level"]) log_level_ = yaml["log_level"].as<string>();
-    if (yaml["dsn"]) dsn_ = yaml["dsn"].as<string>();
-    if (yaml["cors_allow"]) cors_allow_ = yaml["cors_allow"].as<string>();
+    yaml = YAML::LoadFile(config_file_path);
+    if (has_value("port")) port_ = get<unsigned int>("port");
+    if (has_value("threads")) threads_ = get<unsigned int>("threads");
+    if (has_value("spdlog_queue_size")) 
+      spdlog_queue_size(get<unsigned int>("spdlog_queue_size"));
+    if (has_value("address")) address_ = get<string>("address");
+    if (has_value("static_resource_path")) 
+      static_resource_path_ = get<string>("static_resource_path");
+    if (has_value("views_path")) views_path_ = get<string>("views_path");
+    if (has_value("config_path")) config_path_ = get<string>("config_path");
+    if (has_value("log_directory")) log_directory_ = get<string>("log_directory");
+    if (has_value("log_level")) log_level_ = get<string>("log_level");
+    if (has_value("dsn")) dsn_ = get<string>("dsn");
+    if (has_value("cors_allow")) cors_allow_ = get<string>("cors_allow");
   }
 
   if(!regex_match(log_level(), regex("^(?:critical|err|warn|info|debug|trace|off)$")))
