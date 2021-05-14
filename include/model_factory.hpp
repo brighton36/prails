@@ -12,13 +12,13 @@
 #define PSYM_DSN(name, value) ModelFactory::dsn(#name, #value);
 
 template<typename T> 
-void migrateT() { 
-  T::Migrate(); 
+void migrateT(unsigned int version) { 
+  T::Migrate(version); 
 }
 
 struct ModelMapEntry{
   public:
-    void (*migrate)();
+    void (*migrate)(unsigned int);
 };
 
 struct ModelFactory {
@@ -28,12 +28,12 @@ struct ModelFactory {
 
   public:
 
-    static void migrate(std::string const& s) {
+    static void migrate(std::string const& s, unsigned int version) {
       map_type::iterator it = models->find(s);
       if(it == models->end())
         throw std::runtime_error("Migration "+s+" not found");
 
-      it->second.migrate();
+      it->second.migrate(version);
     }
 
     static std::vector<std::string> getModelNames() {

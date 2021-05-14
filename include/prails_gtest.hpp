@@ -52,12 +52,21 @@ class PrailsEnvironment : public ::testing::Environment {
       // NOTE: We may want to support setting up specific models to migrate in
       // the constructor...
       for (const auto &reg : ModelFactory::getModelNames())
-        ModelFactory::migrate(reg);
+        ModelFactory::migrate(reg, 1);
     }
 
     void InitializeServer() {
       server = std::make_unique<Server>(*config);
       server->startThreaded();
+    }
+
+    void DestroyServer() {
+      server->shutdown();
+    }
+
+    void DestroyDatabase() {
+      for (const auto &reg : ModelFactory::getModelNames())
+        ModelFactory::migrate(reg, 0);
     }
 
   public:
@@ -71,6 +80,7 @@ class PrailsEnvironment : public ::testing::Environment {
     }
 
     void TearDown() override {
-      server->shutdown();
+      DestroyServer();
+      DestroyDatabase();
     }
 };

@@ -51,7 +51,7 @@ unsigned int mode_migrate(ConfigParser &, shared_ptr<spdlog::logger> logger, con
 
   for (const auto &reg : ModelFactory::getModelNames()) {
     logger->info("Running migration for {}..", reg);
-    ModelFactory::migrate(reg);
+    ModelFactory::migrate(reg, 1);
   }
 
   return 0;

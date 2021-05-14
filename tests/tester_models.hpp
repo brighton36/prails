@@ -19,8 +19,11 @@ class TimeModel : public Model::Instance<TimeModel> {
       Model::Validations()
     };
 
-    static void Migrate() {
-      CreateTable({ {"tested_at", "datetime"} });
+    static void Migrate(unsigned int version) {
+      if (version)
+        CreateTable({ {"tested_at", "datetime"} });
+      else
+        DropTable();
     };
 
   private:
@@ -69,14 +72,17 @@ class ValidationModel : public Model::Instance<ValidationModel> {
       })
     };
 
-    static void Migrate() {
-      CreateTable({
-        {"email", "varchar(100)"},
-        {"favorite_number", "integer"},
-        {"company_id", "integer"},
-        {"is_company_admin", "integer"},
-        {"is_lazy", "integer"},
-      });
+    static void Migrate(unsigned int version) {
+      if (version)
+        CreateTable({
+          {"email", "varchar(100)"},
+          {"favorite_number", "integer"},
+          {"company_id", "integer"},
+          {"is_company_admin", "integer"},
+          {"is_lazy", "integer"},
+        });
+      else
+        DropTable();
     };
 
   private:
@@ -123,21 +129,24 @@ class TesterModel : public Model::Instance<TesterModel> {
     }; 
 
     // Database Driver Concerns:
-    static void Migrate() {
-      CreateTable({
-        {"first_name", "varchar(100)"},
-        {"last_name", "varchar(100)"},
-        {"email", "varchar(100)"},
-        {"password", "varchar(100)"},
-        {"favorite_number", "integer"},
-        {"unlucky_number", "integer"},
-        {"double_test", "real"},
-        {"ulong_test", "integer"},
-        {"int_test", "integer"},
-        {"is_enthusiastic", "integer"},
-        {"is_lazy", "integer"},
-        {"updated_at", "datetime"}
-      });
+    static void Migrate(unsigned int version) {
+      if (version)
+        CreateTable({
+          {"first_name", "varchar(100)"},
+          {"last_name", "varchar(100)"},
+          {"email", "varchar(100)"},
+          {"password", "varchar(100)"},
+          {"favorite_number", "integer"},
+          {"unlucky_number", "integer"},
+          {"double_test", "real"},
+          {"ulong_test", "integer"},
+          {"int_test", "integer"},
+          {"is_enthusiastic", "integer"},
+          {"is_lazy", "integer"},
+          {"updated_at", "datetime"}
+        });
+      else
+        DropTable();
     };
 
   private:

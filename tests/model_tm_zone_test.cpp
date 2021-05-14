@@ -17,7 +17,12 @@ class TimeModelLocal : public Model::Instance<TimeModelLocal> {
         {"tested_at", COL_TYPE(std::tm)} }), Model::Validations(),
       false  }; // 'false' Persists time in local zone
 
-    static void Migrate() { CreateTable({ {"tested_at", "datetime"} }); };
+    static void Migrate(unsigned int version) { 
+      if (version)
+        CreateTable({ {"tested_at", "datetime"} }); 
+      else
+        DropTable();
+    };
 
   private:
     static ModelRegister<TimeModelLocal> reg;

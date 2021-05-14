@@ -34,14 +34,17 @@ class Task : public Model::Instance<Task> {
       })
     };
 
-    static void Migrate() {
-      CreateTable({
-        {"name", "varchar(100)"},
-        {"active", "integer"},
-        {"description", "varchar(300)"},
-        {"created_at", "datetime"},
-        {"updated_at", "datetime"},
-      });
+    static void Migrate(unsigned int version) {
+      if (version)
+        CreateTable({
+          {"name", "varchar(100)"},
+          {"active", "integer"},
+          {"description", "varchar(300)"},
+          {"created_at", "datetime"},
+          {"updated_at", "datetime"},
+        });
+      else
+        DropTable();
     }
 
   private:
