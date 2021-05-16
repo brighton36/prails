@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.1.3)
+cmake_minimum_required (VERSION 3.10)
 project (prails VERSION 0.1)
 
 ##############################################################################
@@ -7,7 +7,10 @@ include(${CMAKE_ROOT}/Modules/FetchContent.cmake)
 
 # Pistache:
 FetchContent_Declare( pistache
-  GIT_REPOSITORY "https://github.com/oktal/pistache.git" )
+  GIT_REPOSITORY "https://github.com/oktal/pistache.git"
+  # This is the last version before cmake 3.11. We're keeping this version for
+  # compatibility with Ubuntu 18.04 LTS:
+  GIT_TAG d4f85bd42a38202dd0687d485a90cc41d6c8c8d8)
 FetchContent_MakeAvailable(pistache)
 FetchContent_GetProperties(pistache)
 if(NOT pistache_POPULATED)
@@ -62,8 +65,8 @@ endif()
 
 if(CMAKE_BUILD_TYPE MATCHES "Release")
   # These optimizations cause Address Boundary segfaults in soci::to_base (during
-  # Count queries?) on gcc-8. Newer gcc's are not affected. In any case, we disable 
-  # them, since Release is built -O3: 
+  # Count queries?) on gcc-8. Newer gcc's are not affected. In any case, we disable
+  # them, since Release is built -O3:
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-tree-forwprop -fno-tree-phiprop \
     -fno-tree-fre")
 endif()
@@ -107,9 +110,9 @@ if (BUILD_TESTS)
     set(CMAKE_CXX_CPPCHECK "")
   endif()
   INCLUDE(Dart)
-  add_custom_target(test_memcheck COMMAND ${CMAKE_CTEST_COMMAND}  
+  add_custom_target(test_memcheck COMMAND ${CMAKE_CTEST_COMMAND}
     --force-new-ctest-process --test-action memcheck)
-  add_custom_target(coverage COMMAND ${CMAKE_CTEST_COMMAND}  
+  add_custom_target(coverage COMMAND ${CMAKE_CTEST_COMMAND}
     --force-new-ctest-process --test-action coverage)
   enable_testing()
   add_subdirectory(tests)
@@ -122,9 +125,9 @@ add_subdirectory(lib)
 add_library(prails STATIC lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
-target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3 
-  -lsqlite3 -lsoci_mysql -lmysqlclient pistache_static spdlog utilities server 
+target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3
+  -lsqlite3 -lsoci_mysql -lmysqlclient pistache_static spdlog utilities server
   config_parser post_body)
 
-target_link_libraries(prails 
+target_link_libraries(prails
   "-Wl,--whole-archive" controller "-Wl,--no-whole-archive")
