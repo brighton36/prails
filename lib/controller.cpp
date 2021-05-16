@@ -1,4 +1,4 @@
-#include <filesystem>
+#include <experimental/filesystem>
 #include "controller.hpp"
 #include "inja.hpp"
 
@@ -78,7 +78,7 @@ string Controller::Instance::
 ensure_view_folder(string foldername, string controller_folder) {
   string ret = views_path+"/"+controller_folder+"/"+foldername;
 
-  if (!path_is_readable(ret) && filesystem::is_directory(ret))
+  if (!path_is_readable(ret) && experimental::filesystem::is_directory(ret))
     throw RequestException("Attemping to load, but unable to read directory {}.", ret);
 
   return ret;
@@ -93,7 +93,7 @@ string Controller::Instance::
 ensure_view_file(string filename, string controller_folder) {
   string ret = views_path+"/"+controller_folder+"/"+filename;
 
-  if (!path_is_readable(ret) && filesystem::is_regular_file(ret))
+  if (!path_is_readable(ret) && experimental::filesystem::is_regular_file(ret))
     throw RequestException("Attemping to load, but unable to read file {}.", ret);
 
   return ret;
@@ -111,7 +111,7 @@ render_js(string action, json tmpl) {
 
   env.add_callback("include_as_string", 1, [view_file](inja::Arguments& args) {
     auto filename = args.at(0)->get<string>();
-    string include_file_path = string(filesystem::path(view_file).parent_path())+"/"+filename;
+    string include_file_path = string(experimental::filesystem::path(view_file).parent_path())+"/"+filename;
     return json{read_file(include_file_path)}[0].dump();
   });
 
