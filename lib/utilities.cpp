@@ -1,5 +1,5 @@
 #include "utilities.hpp"
-#include <experimental/filesystem>
+#include <filesystem>
 #include <fstream>
 #include <numeric>
 
@@ -8,17 +8,15 @@ using namespace std;
 namespace prails::utilities {
 
 bool path_is_readable(const string &path) {
-  using namespace experimental::filesystem;
-
-  experimental::filesystem::path p(path);
+  filesystem::path p(path);
 
   error_code ec;
-  auto perms = status(p, ec).permissions();
+  auto perms = filesystem::status(p, ec).permissions();
 
   return ( (ec.value() == 0) && (
-    (perms & perms::owner_read) != perms::none &&
-    (perms & perms::group_read) != perms::none &&
-    (perms & perms::others_read) != perms::none ) );
+    (perms & filesystem::perms::owner_read) != filesystem::perms::none &&
+    (perms & filesystem::perms::group_read) != filesystem::perms::none &&
+    (perms & filesystem::perms::others_read) != filesystem::perms::none ) );
 }
 
 string remove_trailing_slash(const string &path) {
