@@ -7,5 +7,5 @@ add_library(controller STATIC controller.cpp)
 add_library(config_parser STATIC config_parser.cpp)
 
 target_link_libraries(controller utilities)
-target_link_libraries(config_parser utilities -lyaml-cpp)
+target_link_libraries(config_parser utilities -lyaml-cpp -lstdc++fs)
 target_link_libraries(server -lstdc++fs)
