@@ -1,3 +1,4 @@
+#pragma once
 #include <map>
 
 #include "config_parser.hpp"
