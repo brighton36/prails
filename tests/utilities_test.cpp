@@ -85,4 +85,15 @@ TEST(utilities_test, json_to_tm) {
   EXPECT_EQ(epoch2.tm_isdst, 0);
   EXPECT_EQ(epoch2.tm_gmtoff, (-5 * 3600));
   EXPECT_EQ(tm_to_iso8601(epoch2), "2020-05-01T01:02:03-0500");
+
+  tm epoch3 = iso8601_to_tm("2021-08-28T00:01:05-0500");
+  EXPECT_EQ(epoch3.tm_mon, 7); // NOTE: Month 0 is January
+  EXPECT_EQ(epoch3.tm_mday, 28);
+  EXPECT_EQ(epoch3.tm_year, 121);
+  EXPECT_EQ(epoch3.tm_hour, 0);
+  EXPECT_EQ(epoch3.tm_min, 1);
+  EXPECT_EQ(epoch3.tm_sec, 5);
+  EXPECT_EQ(epoch3.tm_isdst, 0);
+  EXPECT_EQ(epoch3.tm_gmtoff, (-5 * 3600));
+  EXPECT_EQ(tm_to_iso8601(epoch3), "2021-08-28T00:01:05-0500");
 }

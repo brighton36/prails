@@ -204,6 +204,9 @@ TEST(customer_controller_test, uri_decode_array) {
   post = Controller::PostBody("test=first&test=second&test=third");
   ASSERT_EQ(*post.size(), 1);
   ASSERT_EQ(*post("test"), "first");
+
+  // TODO: maybe try two consecutive ['s. ie: hash[[key]= or hash[key]]=
+  // TODO: maybe try two consecutive ['s. ie: array[[]= or array[]]=
 }
 
 TEST(post_body_test, scalar_typecasting) {
