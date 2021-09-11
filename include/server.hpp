@@ -11,6 +11,7 @@ class Server {
     static std::optional<std::string> ExtToMime(const std::string &);
   private:
     size_t threads;
+    size_t max_request_size;
     std::shared_ptr<spdlog::logger> logger;
     std::string html_error500;
     std::string html_error404;

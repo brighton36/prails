@@ -50,7 +50,7 @@ TEST_F(TaskControllerFixture, index) {
 
   auto res = browser().Get("/tasks");
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());
@@ -79,7 +79,7 @@ TEST_F(TaskControllerFixture, read) {
 
   auto res = browser().Get(fmt::format("/tasks/{}", *task.id()).c_str());
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());
@@ -102,7 +102,7 @@ TEST_F(TaskControllerFixture, create) {
     "name=Test+Task&description=lorem+ipsum+sit+dolor&active=1",
     "application/x-www-form-urlencoded");
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());
@@ -131,7 +131,7 @@ TEST_F(TaskControllerFixture, update) {
     "name=Updated+Task&description=updated+lorem+ipsum+sit+dolor&active=0",
     "application/x-www-form-urlencoded");
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());
@@ -163,7 +163,7 @@ TEST_F(TaskControllerFixture, del) {
 
   auto res = browser().Delete(fmt::format("/tasks/{}", *task.id()).c_str());
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());
@@ -186,7 +186,7 @@ TEST_F(TaskControllerFixture, multiple_update) {
     "ids%5B%5D={}&ids%5B%5D={}&request%5Bdescription%5D=New+Description",
     *tasks[1].id(), *tasks[3].id() ), "application/x-www-form-urlencoded");
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());
@@ -226,7 +226,7 @@ TEST_F(TaskControllerFixture, multiple_delete) {
     "ids%5B%5D={}&ids%5B%5D={}&request%5Bdescription%5D=New+Description",
     *tasks[1].id(), *tasks[3].id() ), "application/x-www-form-urlencoded");
 
-  EXPECT_EQ(res->status, 200);
+  ASSERT_EQ(res->status, 200);
 
   rapidjson::Document document;
   document.Parse(res->body.c_str());

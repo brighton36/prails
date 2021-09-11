@@ -11,6 +11,7 @@ class ConfigParser {
     std::string path();
     unsigned int port();
     unsigned int threads();
+    unsigned int max_request_size();
     void threads(unsigned int);
     unsigned int spdlog_queue_size();
     void spdlog_queue_size(unsigned int);
@@ -42,6 +43,7 @@ class ConfigParser {
     YAML::Node yaml;
     unsigned int port_;
     unsigned int threads_;
+    unsigned int max_request_size_;
     unsigned int spdlog_queue_size_;
     std::string path_;
     std::string address_;

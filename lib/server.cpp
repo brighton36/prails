@@ -21,6 +21,7 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
   this->path_static = config.static_resource_path();
   this->path_views = config.views_path();
   this->threads = config.threads();
+  this->max_request_size = config.max_request_size();
 
   for (const auto &reg : ModelFactory::getModelNames())
     logger->trace("Found model \"{}\"", reg);
@@ -33,6 +34,7 @@ http_endpoint(make_shared<Http::Endpoint>(Address(config.address(), config.port(
 
   auto opts = Http::Endpoint::options()
     .threads(threads)
+    .maxRequestSize(max_request_size)
     .flags(Tcp::Options::ReuseAddr)
     .logger(make_shared<StringToSpdLogger>(logger));
 

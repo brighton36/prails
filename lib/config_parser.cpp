@@ -17,6 +17,7 @@ using namespace prails::utilities;
 ConfigParser::ConfigParser() {
   port_ = 8080;
   threads_ = 2;
+  max_request_size_ = 4096; // pistache's DefaultMaxRequestSize
   address_ = "0.0.0.0";
   base_path = ".";
   static_resource_path_ = "public";
@@ -27,9 +28,7 @@ ConfigParser::ConfigParser() {
   spdlog_queue_size(8192);
 }
 
-ConfigParser::ConfigParser(string config_file_path) {
-  ConfigParser();
-
+ConfigParser::ConfigParser(string config_file_path) : ConfigParser() {
   path_ = config_file_path;
 
   if (!config_file_path.empty()) {
@@ -41,6 +40,8 @@ ConfigParser::ConfigParser(string config_file_path) {
     yaml = YAML::LoadFile(config_file_path);
     if (has_value("port")) port_ = get<unsigned int>("port");
     if (has_value("threads")) threads_ = get<unsigned int>("threads");
+    if (has_value("max_request_size"))
+      max_request_size_ = get<unsigned int>("max_request_size");
     if (has_value("spdlog_queue_size")) 
       spdlog_queue_size(get<unsigned int>("spdlog_queue_size"));
     if (has_value("address")) address_ = get<string>("address");
@@ -101,6 +102,9 @@ shared_ptr<spdlog::logger> ConfigParser::setup_logger(const string &logger_name)
 string ConfigParser::path() { return path_; }
 unsigned int ConfigParser::port() { return port_; }
 unsigned int ConfigParser::threads() { return threads_; }
+unsigned int ConfigParser::max_request_size() { 
+  return max_request_size_;
+}
 unsigned int ConfigParser::spdlog_queue_size() { return spdlog_queue_size_; }
 string ConfigParser::address() { return address_; }
 string ConfigParser::static_resource_path() { return expand_path(static_resource_path_); }
