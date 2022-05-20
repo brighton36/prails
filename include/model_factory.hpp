@@ -6,6 +6,7 @@
 #define PSYM_MODELS() \
   std::shared_ptr<ModelFactory::map_type> ModelFactory::models = std::make_shared<ModelFactory::map_type>(); \
   std::shared_ptr<ModelFactory::dsn_type> ModelFactory::dsns = std::make_shared<ModelFactory::dsn_type>(); \
+  std::shared_ptr<ModelFactory::dsn_spec> ModelFactory::specs = std::make_shared<ModelFactory::dsn_spec>(); \
   ModelFactory::Logger ModelFactory::logger = nullptr;
 
 #define PSYM_MODEL(name) ModelRegister<name> name::reg(#name);
@@ -24,6 +25,7 @@ struct ModelMapEntry{
 struct ModelFactory {
   typedef std::map<std::string, ModelMapEntry> map_type;
   typedef std::map<std::string, std::shared_ptr<soci::connection_pool>> dsn_type;
+  typedef std::map<std::string, std::string> dsn_spec;
   typedef std::function<void (std::string)> Logger;
 
   public:
@@ -48,6 +50,13 @@ struct ModelFactory {
       transform(dsns->begin(), dsns->end(), back_inserter(ret), [](auto& c) { 
         return c.first; });
       return ret;
+    }
+
+    static std::string getDsn(std::string name) {
+      if (specs->count(name) == 0)
+        throw std::runtime_error("Dsn "+name+" not found");
+
+      return (*specs)[name]; 
     }
 
     static soci::session getSession(std::string name) {
@@ -79,8 +88,10 @@ struct ModelFactory {
           mysql_options(mysqlbackend->conn_, MYSQL_OPT_RECONNECT, &reconnect);
         }
       }
-
       dsns->insert(std::make_pair(name, connection_pool));
+      // We added this, because there are times when we will have a connection 
+      // handler open, and a need to parse the dsn field. 
+      specs->insert(std::make_pair(name, value));
     }
 
     static void Log(const std::string &message) {
@@ -91,6 +102,7 @@ struct ModelFactory {
   private:
     static std::shared_ptr<map_type> models;
     static std::shared_ptr<dsn_type> dsns;
+    static std::shared_ptr<dsn_spec> specs;
     static Logger logger;
 };
 
