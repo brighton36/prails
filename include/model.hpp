@@ -66,7 +66,7 @@ namespace Model {
     public:
       explicit ColumnValidator(const std::string &column) : column(column) {};
 
-      RecordError isValid(Model::Record &, const Model::Definition &) const { 
+      RecordError isValid(Model::Record &, Model::Definition &) const {
         return std::nullopt;
       }
 
@@ -98,7 +98,7 @@ namespace Model {
       // TODO: I think we may not be deconconstructing passed_ob correctly. Test.
       ~Validator() {}
 
-      std::function<RecordError(Model::Record &r, const Model::Definition &)> isValid;
+      std::function<RecordError(Model::Record &r, Model::Definition &)> isValid;
     private:
       std::shared_ptr<ColumnValidator> passed_obj;
   };
@@ -117,11 +117,18 @@ namespace Model {
   }
 
   class Definition {
+    private:
+      std::string _pkey_column;
+      std::string _table_name;
     public:
+      ColumnTypes column_types;
+      Validations validations;
+      bool is_persisting_in_utc = true;
+
       explicit Definition(const std::string &pkey_column, 
         const std::string &table_name, const ColumnTypes column_types, 
         const Validations validations, bool is_persisting_in_utc = true) : 
-        pkey_column(pkey_column), table_name(table_name), 
+        _pkey_column(pkey_column), _table_name(table_name),
         column_types(column_types), validations(validations), 
         is_persisting_in_utc(is_persisting_in_utc) {
 
@@ -139,11 +146,8 @@ namespace Model {
           pkey_column, provided_pkey_type, expected_pkey_type);
       };
 
-      std::string pkey_column; // NOTE: This column must be a long as of this time.
-      std::string table_name;
-      ColumnTypes column_types;
-      Validations validations;
-      bool is_persisting_in_utc = true;
+      std::string pkey_column() const { return _pkey_column; }; // NOTE: This column must be a long as of this time.
+      std::string table_name() const { return _table_name; };
   };
 
   template <class T>
@@ -160,7 +164,7 @@ namespace Model {
 
       Model::RecordErrors errors_;
       std::optional<bool> isValid_;
-      const Model::Definition* definition;
+      Model::Definition* definition;
       std::shared_ptr<soci::connection_pool> pool;
       Model::Record record;
 
@@ -168,8 +172,8 @@ namespace Model {
       Instance();
       Instance(Model::Record);
       Instance(Model::Record, bool);
-      Instance(const Model::Definition* const);
-      Instance(Model::Record, bool, const Model::Definition* const);
+      Instance(Model::Definition*);
+      Instance(Model::Record, bool, Model::Definition*);
 
       bool isValid();
       bool isDirty();
@@ -211,7 +215,7 @@ namespace Model {
 
         const std::string ErrorMessage = "is missing";
 
-        RecordError isValid(Model::Record &r, const Model::Definition &) const {
+        RecordError isValid(Model::Record &r, Model::Definition &) const {
           if (!hasValue(r)) return error(ErrorMessage);
           return std::nullopt;
         }
@@ -223,7 +227,7 @@ namespace Model {
 
         const std::string ErrorMessage = "is empty";
 
-        RecordError isValid(Model::Record &r, const Model::Definition &) const {
+        RecordError isValid(Model::Record &r, Model::Definition &) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
@@ -240,7 +244,7 @@ namespace Model {
 
         const std::string ErrorMessage = "isnt a yes or no value";
 
-        RecordError isValid(Model::Record &r, const Model::Definition &) const {
+        RecordError isValid(Model::Record &r, Model::Definition &) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(int))) || 
@@ -260,7 +264,7 @@ namespace Model {
         explicit Matches(const std::string &column, std::regex against) : 
           ColumnValidator(column), against(against) {};
 
-        RecordError isValid(Model::Record &r, const Model::Definition &) const {
+        RecordError isValid(Model::Record &r, Model::Definition &) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
@@ -281,7 +285,7 @@ namespace Model {
         explicit MaxLength(const std::string &column, unsigned int max_length) : 
           ColumnValidator(column), max_length(max_length) {};
 
-        RecordError isValid(Model::Record &r, const Model::Definition &) const {
+        RecordError isValid(Model::Record &r, Model::Definition &) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
@@ -306,7 +310,7 @@ namespace Model {
           ColumnValidator(column), add_conditionals(add_conditionals) {};
 
         RecordError isValid(Model::Record &record, 
-          const Model::Definition &definition) const {
+          Model::Definition &definition) const {
 
           if (!hasValue(record)) return std::nullopt;
 
@@ -314,7 +318,7 @@ namespace Model {
           soci::statement st(sql);
 
           // Put the query together:
-          std::string query = "select count(*) from "+definition.table_name;
+          std::string query = "select count(*) from "+definition.table_name();
 
 
           // NOTE: For reasons I don't understand, it seems we need to allocate
@@ -327,9 +331,9 @@ namespace Model {
             query += " where "+column+" = :"+column;
           }
 
-          if (record[definition.pkey_column]) {
-            where->insert({definition.pkey_column, record[definition.pkey_column]});
-            query += " and "+definition.pkey_column+" != :"+definition.pkey_column;
+          if (record[definition.pkey_column()]) {
+            where->insert({definition.pkey_column(), record[definition.pkey_column()]});
+            query += " and "+definition.pkey_column()+" != :"+definition.pkey_column();
           } 
 
           if (add_conditionals) {
@@ -460,12 +464,12 @@ Model::Instance<T>::Instance(Model::Record record_, bool isFromDatabase) :
   Model::Instance<T>::Instance(record_, isFromDatabase, &T::Definition) {}
 
 template <class T>
-Model::Instance<T>::Instance(const Model::Definition * const definition) : 
+Model::Instance<T>::Instance(Model::Definition * definition) :
   isDirty_(true), isFromDatabase_(false), isValid_(std::nullopt), definition(definition) {}
 
 template <class T>
 Model::Instance<T>::Instance(
-  Model::Record record_, bool isFromDatabase, const Model::Definition * const definition
+  Model::Record record_, bool isFromDatabase, Model::Definition * definition
 ) : isValid_(std::nullopt), definition(definition) {
   // This mostly enforces type checks:
   for (const auto &col_val : record_) recordSet(col_val.first, col_val.second);
@@ -573,11 +577,11 @@ void Model::Instance<T>::save() {
   if (isFromDatabase()) {
     std::vector<std::string> set_pairs;
     for (auto &key : columns) 
-      if (key != definition->pkey_column) set_pairs.push_back(key+" = :"+key);
+      if (key != definition->pkey_column()) set_pairs.push_back(key+" = :"+key);
 
     std::string query = fmt::format(
       "update {table_name} set {update_pairs} where id = :id", 
-      fmt::arg("table_name", definition->table_name),
+      fmt::arg("table_name", definition->table_name()),
       fmt::arg("update_pairs", prails::utilities::join(set_pairs, ", "))
       );
 
@@ -599,7 +603,7 @@ void Model::Instance<T>::save() {
 
     std::string query = fmt::format(
       "insert into {table_name} ({columns}) values({values})", 
-      fmt::arg("table_name", definition->table_name),
+      fmt::arg("table_name", definition->table_name()),
       fmt::arg("columns", prails::utilities::join(columns, ", ")),
       fmt::arg("values", prails::utilities::join(values, ", ")));
 
@@ -636,10 +640,10 @@ void Model::Instance<T>::save() {
       // it accepts a long long int.
       bool is_lastid_ok;
 #if (SOCI_VERSION > 400000)
-      is_lastid_ok = sql.get_last_insert_id(definition->table_name, last_id);
+      is_lastid_ok = sql.get_last_insert_id(definition->table_name(), last_id);
 #else
       long int soci_last_id = 0;
-      is_lastid_ok = sql.get_last_insert_id(definition->table_name, soci_last_id);
+      is_lastid_ok = sql.get_last_insert_id(definition->table_name(), soci_last_id);
       if (is_lastid_ok)
         last_id = static_cast<long long int>(soci_last_id);
 #endif
@@ -647,7 +651,7 @@ void Model::Instance<T>::save() {
         throw ModelException("Unable to perform insert, last_insert_id returned zero.");
     }
 
-    recordSet(definition->pkey_column, last_id);
+    recordSet(definition->pkey_column(), last_id);
   }
 
   isDirty_ = false;
@@ -656,11 +660,11 @@ void Model::Instance<T>::save() {
 
 template <class T>
 void Model::Instance<T>::remove() {
-  if (!recordGet(definition->pkey_column))
+  if (!recordGet(definition->pkey_column()))
     throw ModelException("Cannot delete a record that has no id");
 
-  Model::Instance<T>::Remove(definition->table_name,
-    std::get<long long int>(*recordGet(definition->pkey_column)));
+  Model::Instance<T>::Remove(definition->table_name(),
+    std::get<long long int>(*recordGet(definition->pkey_column())));
 }
 
 template <class T>
@@ -671,7 +675,7 @@ void Model::Instance<T>::recordSet(const std::string &col, const Model::RecordVa
 
   // This ensures that any changes to the pkey value, results in an insert 
   // operation during save()
-  if (col == definition->pkey_column) 
+  if (col == definition->pkey_column())
     isFromDatabase_ = false;
 
   // If they're setting the value to null, this path is easy:
@@ -819,7 +823,7 @@ std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where
 
   std::string query = fmt::format(
     "select * from {table_name} where {where} limit 1", 
-    fmt::arg("table_name", T::Definition.table_name), 
+    fmt::arg("table_name", T::Definition.table_name()),
     fmt::arg("where", where));
 
   Model::Log(query);
@@ -832,7 +836,7 @@ std::optional<T> Model::Instance<T>::Find(std::string where, Model::Record where
 
 template <class T>
 void Model::Instance<T>::Remove(long long int id) {
-  Remove(T::Definition.table_name, id);
+  Remove(T::Definition.table_name(), id);
 }
 
 template <class T>
@@ -937,8 +941,8 @@ void Model::Instance<T>::CreateTable(std::vector<std::pair<std::string,std::stri
     throw ModelException("Unrecognized backend. Unable to create table");
 
   query = fmt::format( query, 
-    fmt::arg("table_name", T::Definition.table_name),
-    fmt::arg("pkey_column", T::Definition.pkey_column),
+    fmt::arg("table_name", T::Definition.table_name()),
+    fmt::arg("pkey_column", T::Definition.pkey_column()),
     fmt::arg("columns", joined_columns));
 
   Model::Log(query);
@@ -952,7 +956,7 @@ void Model::Instance<T>::DropTable() {
   // NOTE: I don't think there's any way to error test this, other than to expect
   // for an error to throw from soci...
   std::string query = fmt::format("drop table {table_name}",
-    fmt::arg("table_name", T::Definition.table_name));
+    fmt::arg("table_name", T::Definition.table_name()));
   sql << query;
 }
 

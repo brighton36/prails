@@ -243,7 +243,7 @@ class RestInstance : public Controller::Instance {
     }
     virtual vector<TModel> model_index(TAuthorizer &) {
       return TModel::Select( fmt::format("select * from {table_name}", 
-        fmt::arg("table_name", TModel::Definition.table_name)));
+        fmt::arg("table_name", TModel::Definition.table_name())));
     }
 };
 

@@ -13,7 +13,7 @@ class Task : public Model::Instance<Task> {
     MODEL_ACCESSOR(created_at, std::tm)
     MODEL_ACCESSOR(updated_at, std::tm)
 
-    inline static const Model::Definition Definition {
+    inline static Model::Definition Definition {
       "id",
       "tasks", 
       Model::ColumnTypes({

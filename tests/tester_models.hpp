@@ -9,7 +9,7 @@ class TimeModel : public Model::Instance<TimeModel> {
     MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(tested_at, std::tm)
 
-    inline static const Model::Definition Definition {
+    inline static Model::Definition Definition {
       "id",
       "time_models", 
       Model::ColumnTypes( { 
@@ -41,7 +41,7 @@ class ValidationModel : public Model::Instance<ValidationModel> {
     MODEL_ACCESSOR(favorite_number, long long int)
     MODEL_ACCESSOR(company_id, long long int)
 
-    inline static const Model::Definition Definition {
+    inline static Model::Definition Definition {
       "id",
       "validation_models", 
       Model::ColumnTypes( { 
@@ -107,7 +107,7 @@ class TesterModel : public Model::Instance<TesterModel> {
     MODEL_ACCESSOR(is_lazy, int)
     MODEL_ACCESSOR(updated_at, std::tm)
 
-    inline static const Model::Definition Definition {
+    inline static Model::Definition Definition {
       "id",
       "tester_models", 
       Model::ColumnTypes({

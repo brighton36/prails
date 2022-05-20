@@ -12,7 +12,7 @@ class TimeModelLocal : public Model::Instance<TimeModelLocal> {
     MODEL_ACCESSOR(id, long long int)
     MODEL_ACCESSOR(tested_at, std::tm)
 
-    inline static const Model::Definition Definition {
+    inline static Model::Definition Definition {
       "id", "time_models_local", Model::ColumnTypes( { {"id", COL_TYPE(long long int)}, 
         {"tested_at", COL_TYPE(std::tm)} }), Model::Validations(),
       false  }; // 'false' Persists time in local zone
@@ -115,7 +115,7 @@ void lifecycle_assertions(tm start_at, string end_at, string zone) {
 
   vector<T> updated_models = T::Select(fmt::format(
       "select *, strftime('%Y-%m-%d %H:%M:%S',tested_at) as tested_at_string"
-      " from {} where id = :id limit 1", T::Definition.table_name), 
+      " from {} where id = :id limit 1", T::Definition.table_name()),
       *create_model.id() );
   ASSERT_EQ(updated_models.size(), 1);
 
