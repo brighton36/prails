@@ -117,7 +117,7 @@ namespace Model {
   }
 
   class Definition {
-    private:
+    protected:
       std::string _pkey_column;
       std::string _table_name;
     public:
