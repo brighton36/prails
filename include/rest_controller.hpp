@@ -201,10 +201,11 @@ class RestInstance : public Controller::Instance {
       TAuthorizer authorizer = ensure_authorization<TAuthorizer>(request, "multiple_delete");
 
       auto post = Controller::PostBody(request.body());
-      post.each("ids", [this, &post, &authorizer](const string &v) { 
-        if (auto model = TModel::Find(stoi(v)); model.has_value()) 
-          model_delete(*model, authorizer);
-      });
+      if (post.has_collection("ids"))
+        post.each("ids", [this, &post, &authorizer](const string &v) {
+          if (auto model = TModel::Find(stoi(v)); model.has_value())
+            model_delete(*model, authorizer);
+        });
 
       return Response( nlohmann::json({{"status", 0}}) );
     }
