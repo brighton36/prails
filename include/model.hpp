@@ -527,8 +527,8 @@ Model::RecordErrors Model::Instance<T>::errors() {
   // Rebuild this cache:
   errors_.clear();
 
-  for (auto &validator : definition->validations) {
-    Model::RecordError error = validator.isValid(record, *definition);
+  for (auto &validator : T::Definition.validations) {
+    Model::RecordError error = validator.isValid(record, T::Definition);
     if (error) { 
       std::optional<std::string> column = (*error).first;
       std::string message = (*error).second;
@@ -581,7 +581,7 @@ void Model::Instance<T>::save() {
 
     std::string query = fmt::format(
       "update {table_name} set {update_pairs} where id = :id", 
-      fmt::arg("table_name", definition->table_name()),
+      fmt::arg("table_name", T::Definition.table_name()),
       fmt::arg("update_pairs", prails::utilities::join(set_pairs, ", "))
       );
 
@@ -603,7 +603,7 @@ void Model::Instance<T>::save() {
 
     std::string query = fmt::format(
       "insert into {table_name} ({columns}) values({values})", 
-      fmt::arg("table_name", definition->table_name()),
+      fmt::arg("table_name", T::Definition.table_name()),
       fmt::arg("columns", prails::utilities::join(columns, ", ")),
       fmt::arg("values", prails::utilities::join(values, ", ")));
 
@@ -640,10 +640,10 @@ void Model::Instance<T>::save() {
       // it accepts a long long int.
       bool is_lastid_ok;
 #if (SOCI_VERSION > 400000)
-      is_lastid_ok = sql.get_last_insert_id(definition->table_name(), last_id);
+      is_lastid_ok = sql.get_last_insert_id(T::Definition.table_name(), last_id);
 #else
       long int soci_last_id = 0;
-      is_lastid_ok = sql.get_last_insert_id(definition->table_name(), soci_last_id);
+      is_lastid_ok = sql.get_last_insert_id(T::Definition.table_name(), soci_last_id);
       if (is_lastid_ok)
         last_id = static_cast<long long int>(soci_last_id);
 #endif
@@ -663,7 +663,7 @@ void Model::Instance<T>::remove() {
   if (!recordGet(definition->pkey_column()))
     throw ModelException("Cannot delete a record that has no id");
 
-  Model::Instance<T>::Remove(definition->table_name(),
+  Model::Instance<T>::Remove(T::Definition.table_name(),
     std::get<long long int>(*recordGet(definition->pkey_column())));
 }
 
