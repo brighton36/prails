@@ -312,19 +312,11 @@ namespace Model {
           ColumnValidator(column), add_conditionals(add_conditionals) {};
 
         RecordError isValid(Model::Record &record) const {
-
           if (!hasValue(record)) return std::nullopt;
-
-          soci::session sql = ModelFactory::getSession("default");
-          soci::statement st(sql);
 
           // Put the query together:
           std::string query = "select count(*) from "+T::Definition.table_name();
 
-          // NOTE: For reasons I don't understand, it seems we need to allocate
-          // and pass this as a pointer. A reference to a local object segfaults...
-          // I think this has to do with how these validators are initialized
-          // in the objects... Weirdly, make_shared gives us a bad_alloc ...
           auto where = new Record();
           if(record[column].has_value()) {
             where->insert({column, record[column]});
@@ -345,27 +337,7 @@ namespace Model {
             }
           }
 
-          Model::Log(query);
-
-          st.exchange(soci::use(where));
-
-          long found_records;
-          st.exchange(soci::into(found_records));
-          st.alloc();
-          st.prepare(query);
-          st.define_and_bind();
-
-          auto execute_ret = st.execute(true);
-          delete where;
-
-          if (!execute_ret) 
-            throw ModelException("No data returned for count query");
-
-          return (found_records > 0) ? error(ErrorMessage) : std::nullopt;
-
-          // TODO: Uncomment the above
-          return std::nullopt;
-
+          return (T::Count(query, where) > 0) ? error(ErrorMessage) : std::nullopt;
         }
     };
   }
