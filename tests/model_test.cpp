@@ -30,6 +30,7 @@ class TesterModelTest : public PrailsControllerTest {
   };
 
   // We use this to test out Validations that only reference the state of 'record'
+  // TODO: Nix this...
   Model::Definition empty_definition {
     "id",
     "unavailable_table", 
@@ -394,19 +395,19 @@ TEST_F(TesterModelTest, test_validator_not_null) {
 
   Model::Record r;
   r["field_name"] = "John";
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   r["field_name"] = string();
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
   
   r["field_name"] = 12;
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   r["field_name"] = nullopt;
-  EXPECT_EQ(error, *validator.isValid(r,empty_definition));
+  EXPECT_EQ(error, *validator.isValid(r));
 
   Model::Record s = {{"irrelevent_field", "irrelevant value"}};
-  EXPECT_EQ(error, *validator.isValid(s, empty_definition));
+  EXPECT_EQ(error, *validator.isValid(s));
 }
 
 TEST_F(TesterModelTest, test_validator_not_empty) {
@@ -416,22 +417,22 @@ TEST_F(TesterModelTest, test_validator_not_empty) {
   Model::Record r;
 
   r["field_name"] = "John";
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   // No fail on null:
   r["field_name"] = nullopt;
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   Model::Record s = {{"irrelevent_field", "irrelevant value"}};
-  EXPECT_EQ(nullopt, validator.isValid(s, empty_definition));
+  EXPECT_EQ(nullopt, validator.isValid(s));
 
   r["field_name"] = string();
-  EXPECT_EQ(error, *validator.isValid(r,empty_definition));
+  EXPECT_EQ(error, *validator.isValid(r));
 
   // This is a type mismatch.
   // I suppose we could throw an exception- but, I think this should return "is empty":
   r["field_name"] = 12;
-  EXPECT_EQ(error, *validator.isValid(r,empty_definition));
+  EXPECT_EQ(error, *validator.isValid(r));
 }
 
 TEST_F(TesterModelTest, test_validator_is_bool) {
@@ -440,26 +441,26 @@ TEST_F(TesterModelTest, test_validator_is_bool) {
 
   Model::Record r;
   r["field_name"] = (int) 0;
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   r["field_name"] = (int) 1;
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   // No fail on null:
   r["field_name"] = nullopt;
-  EXPECT_EQ(nullopt, validator.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, validator.isValid(r));
 
   Model::Record s = {{"irrelevent_field", "irrelevant value"}};
-  EXPECT_EQ(nullopt, validator.isValid(s, empty_definition));
+  EXPECT_EQ(nullopt, validator.isValid(s));
 
   r["field_name"] = (int) -1;
-  EXPECT_EQ(error, *validator.isValid(r,empty_definition));
+  EXPECT_EQ(error, *validator.isValid(r));
 
   r["field_name"] = (int) 2;
-  EXPECT_EQ(error, *validator.isValid(r,empty_definition));
+  EXPECT_EQ(error, *validator.isValid(r));
 
   r["field_name"] = (string) "Invalid Type";
-  EXPECT_EQ(error, *validator.isValid(r,empty_definition));
+  EXPECT_EQ(error, *validator.isValid(r));
 
 }
 
@@ -473,18 +474,18 @@ TEST_F(TesterModelTest, test_validator_matches) {
   Model::Record r;
 
   r["field_name"] = "John";
-  EXPECT_EQ(nullopt, insensitive_john.isValid(r,empty_definition));  
-  EXPECT_EQ(error, *sensitive_john.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, insensitive_john.isValid(r));
+  EXPECT_EQ(error, *sensitive_john.isValid(r));
 
   // No fail on null:
   r["field_name"] = nullopt;
-  EXPECT_EQ(nullopt, insensitive_john.isValid(r,empty_definition));  
+  EXPECT_EQ(nullopt, insensitive_john.isValid(r));
 
   Model::Record s = {{"irrelevent_field", "irrelevant value"}};
-  EXPECT_EQ(nullopt, sensitive_john.isValid(s, empty_definition));  
+  EXPECT_EQ(nullopt, sensitive_john.isValid(s));
 
   r["field_name"] = 12;
-  EXPECT_EQ(error, *sensitive_john.isValid(r,empty_definition));  
+  EXPECT_EQ(error, *sensitive_john.isValid(r));
 }
 
 TEST_F(TesterModelTest, test_validator_string_column_unique) {

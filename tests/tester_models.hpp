@@ -55,10 +55,10 @@ class ValidationModel : public Model::Instance<ValidationModel> {
       Model::Validations( {
         Model::Validates::NotNull("email"),
         Model::Validates::Matches("email", regex_from_string("/.+@.+/")),
-        Model::Validates::IsUnique("email"),
-        Model::Validates::IsUnique("favorite_number"),
+        Model::Validates::IsUnique<ValidationModel>("email"),
+        Model::Validates::IsUnique<ValidationModel>("favorite_number"),
         Model::Validates::IsBoolean("is_company_admin"),
-        Model::Validates::IsUnique("is_company_admin", 
+        Model::Validates::IsUnique<ValidationModel>("is_company_admin",
           [](Model::Record record){ 
             return (record["company_id"] && record["company_id"].has_value()) ?
               std::make_optional(Model::Conditional( 

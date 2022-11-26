@@ -66,7 +66,8 @@ namespace Model {
     public:
       explicit ColumnValidator(const std::string &column) : column(column) {};
 
-      RecordError isValid(Model::Record &, Model::Definition &) const {
+      template <class T>
+      RecordError isValid(Model::Record &) const {
         return std::nullopt;
       }
 
@@ -92,13 +93,13 @@ namespace Model {
         // If we don't make a local copy of t, things get weird and crashy:
         passed_obj = std::make_shared<T>(t);
         isValid = std::bind(&T::isValid, static_cast<T*>(passed_obj.get()), 
-          std::placeholders::_1, std::placeholders::_2);
+          std::placeholders::_1);
       }
 
       // TODO: I think we may not be deconconstructing passed_ob correctly. Test.
       ~Validator() {}
 
-      std::function<RecordError(Model::Record &r, Model::Definition &)> isValid;
+      std::function<RecordError(Model::Record &r)> isValid;
     private:
       std::shared_ptr<ColumnValidator> passed_obj;
   };
@@ -215,7 +216,7 @@ namespace Model {
 
         const std::string ErrorMessage = "is missing";
 
-        RecordError isValid(Model::Record &r, Model::Definition &) const {
+        RecordError isValid(Model::Record &r) const {
           if (!hasValue(r)) return error(ErrorMessage);
           return std::nullopt;
         }
@@ -227,7 +228,7 @@ namespace Model {
 
         const std::string ErrorMessage = "is empty";
 
-        RecordError isValid(Model::Record &r, Model::Definition &) const {
+        RecordError isValid(Model::Record &r) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
@@ -244,7 +245,7 @@ namespace Model {
 
         const std::string ErrorMessage = "isnt a yes or no value";
 
-        RecordError isValid(Model::Record &r, Model::Definition &) const {
+        RecordError isValid(Model::Record &r) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(int))) || 
@@ -264,7 +265,7 @@ namespace Model {
         explicit Matches(const std::string &column, std::regex against) : 
           ColumnValidator(column), against(against) {};
 
-        RecordError isValid(Model::Record &r, Model::Definition &) const {
+        RecordError isValid(Model::Record &r) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
@@ -285,7 +286,7 @@ namespace Model {
         explicit MaxLength(const std::string &column, unsigned int max_length) : 
           ColumnValidator(column), max_length(max_length) {};
 
-        RecordError isValid(Model::Record &r, Model::Definition &) const {
+        RecordError isValid(Model::Record &r) const {
           if (!hasValue(r)) return std::nullopt;
 
           if ( (!hasValue(r, COL_TYPE(std::string))) || 
@@ -296,6 +297,7 @@ namespace Model {
         }
     };
 
+    template <class T>
     class IsUnique : public ColumnValidator {
       private:
         AddConditionals add_conditionals;
@@ -309,8 +311,7 @@ namespace Model {
           const AddConditionals add_conditionals) : 
           ColumnValidator(column), add_conditionals(add_conditionals) {};
 
-        RecordError isValid(Model::Record &record, 
-          Model::Definition &definition) const {
+        RecordError isValid(Model::Record &record) const {
 
           if (!hasValue(record)) return std::nullopt;
 
@@ -318,8 +319,7 @@ namespace Model {
           soci::statement st(sql);
 
           // Put the query together:
-          std::string query = "select count(*) from "+definition.table_name();
-
+          std::string query = "select count(*) from "+T::Definition.table_name();
 
           // NOTE: For reasons I don't understand, it seems we need to allocate
           // and pass this as a pointer. A reference to a local object segfaults...
@@ -331,9 +331,9 @@ namespace Model {
             query += " where "+column+" = :"+column;
           }
 
-          if (record[definition.pkey_column()]) {
-            where->insert({definition.pkey_column(), record[definition.pkey_column()]});
-            query += " and "+definition.pkey_column()+" != :"+definition.pkey_column();
+          if (record[T::Definition.pkey_column()]) {
+            where->insert({T::Definition.pkey_column(), record[T::Definition.pkey_column()]});
+            query += " and "+T::Definition.pkey_column()+" != :"+T::Definition.pkey_column();
           } 
 
           if (add_conditionals) {
@@ -362,6 +362,10 @@ namespace Model {
             throw ModelException("No data returned for count query");
 
           return (found_records > 0) ? error(ErrorMessage) : std::nullopt;
+
+          // TODO: Uncomment the above
+          return std::nullopt;
+
         }
     };
   }
@@ -528,7 +532,7 @@ Model::RecordErrors Model::Instance<T>::errors() {
   errors_.clear();
 
   for (auto &validator : T::Definition.validations) {
-    Model::RecordError error = validator.isValid(record, T::Definition);
+    Model::RecordError error = validator.isValid(record);
     if (error) { 
       std::optional<std::string> column = (*error).first;
       std::string message = (*error).second;
@@ -537,7 +541,7 @@ Model::RecordErrors Model::Instance<T>::errors() {
         errors_[column] = std::vector<std::string>();
 
       errors_[column].push_back(message);
-    } 
+    }
   }
 
   return errors_;
