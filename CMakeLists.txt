@@ -30,6 +30,10 @@ if(NOT spdlog_POPULATED)
   add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
 endif()
 
+# nlohmann
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 # Google Test:
 FetchContent_Declare( googletest
   URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip )
@@ -43,7 +47,8 @@ endif()
 include_directories(
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/include
   ${CMAKE_BINARY_DIR}/_deps/pistache-src/third-party/rapidjson/include
-  ${CMAKE_BINARY_DIR}/_deps/spdlog-src/include)
+  ${CMAKE_BINARY_DIR}/_deps/spdlog-src/include
+  ${CMAKE_BINARY_DIR}/_deps/json-src/single_include)
 
 include_directories(include thirdparty/include)
 include_directories(/usr/include/soci/ /usr/include/mysql/)
@@ -126,7 +131,7 @@ add_library(prails STATIC lib/libprails.cpp)
 set_target_properties(prails PROPERTIES VERSION ${PROJECT_VERSION})
 
 target_link_libraries(prails -lpthread -lstdc++fs -lsoci_core -lsoci_sqlite3
-  -lsqlite3 -lsoci_mysql -lmysqlclient pistache_static spdlog utilities server
+  -lsqlite3 -lsoci_mysql -lmysqlclient pistache_static spdlog nlohmann_json::nlohmann_json utilities server
   config_parser post_body)
 
 target_link_libraries(prails
